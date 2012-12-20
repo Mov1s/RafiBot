@@ -68,14 +68,26 @@ def messageIsBotCommand(aMessage, aCommand):
 	if aMessage == None: return False
 	return aMessage.find('!' + nick + ' ' + aCommand) != -1
 
-#Checks to see if a message in this room contains some keywords
+#Checks to see if a message in this room contains a single keyword
 #(in) aMessage - The message that was recieved
 #(in) aKeyword - The keyword that you want to respond to
 #(out) True or False depending on if you should respond to this keyword
 def messageContainsKeyword(aMessage, aKeyword):
+	return messageContainsKeywords(aMessage, [aKeyword])
+
+#Checks to see if a message in this room contains some keywords
+#(in) aMessage - The message that was recieved
+#(in) someKeywords - A list of keywords that you want to respond to
+#(out) True or False depending on if you should respond to these keywords
+def messageContainsKeywords(aMessage, someKeywords):
 	if aMessage == None: return False
 	isRoomMessage = aMessage.find('PRIVMSG ' + room) != -1
-  	return isRoomMessage and aMessage.find(aKeyword) != -1
+
+	keywordsArePresent = True
+	for keyword in someKeywords:
+		if aMessage.find(keyword) == -1: keywordsArePresent = False
+
+  	return isRoomMessage and keywordsArePresent
 
 #Checks to see if there has been any activity in a given period of time
 #(in)aConnection - The IRC connection to monitor for activity

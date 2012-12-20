@@ -13,6 +13,9 @@ def main(irc):
 		irc.sendMessage('Later fags')
 		irc.sendCommand('QUIT')
 		sys.exit()
+	#Print Rafi's GitHub if someone mentions it
+	elif messageContainsKeywords(message, ['git', nick]):
+		irc.sendMessage('My source is at https://github.com/Mov1s/RafiBot.git')
 	#Print random Rafi quotes whenever rafi is mentioned
 	elif messageContainsKeyword(message, nick):
 		rafiQuotes = []
