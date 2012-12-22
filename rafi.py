@@ -1,5 +1,6 @@
 import ircBase
 import modules.baseModule as baseModule
+import modules.redditModule as redditModule
 
 irc = ircBase.createIrcConnection()
 
@@ -10,5 +11,6 @@ while True:
    
    #Command Modules
    baseModule.main(irc)
+   redditModule.main(irc)
    
    print irc.lastMessage()
