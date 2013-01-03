@@ -31,7 +31,7 @@ def main(irc):
 		rafiQuotes.append("I think your face is gross, I think your boobs are different sizes, and I think *points to crotch* this is way too big!")
 		rafiQuotes.append("I mean, you're such a good kisser, you got my dick hard, and I'm your brother.")
 		rafiQuotes.append("Crotch-beer? Don't mind if I do!")
-		rafiQuotes.append("We're also gonna sell your d*ck for gasoline.")
+		rafiQuotes.append("We're also gonna sell your dick for gasoline.")
 		rafiQuotes.append("Remember, his weak spot is his dick!")
 
 		quoteIndex = randint(0, len(rafiQuotes) - 1)
