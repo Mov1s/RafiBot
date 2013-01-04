@@ -40,6 +40,10 @@ Note that most cases take the last IRC message as the first argument but some ca
 
 `noRoomActivityForTime(aConnection, timeInSeconds)`  This case is true when there has been no activity in the room for certain amount of time.  Unlike all of the above cases, the first argument here is the IRC connection itself, not a message.  The argument `timeInSeconds` is obviously the amount of time in seconds since anyone has said anything (including Rafi).  This time is not exact because Rafi will only check the time elapsed during IRC PING requests.  So the time given is really a minimum amount of time since last activity.  When Rafi actually responds is uncertain, but it will be sometime after that amount of time has elapsed.
 
+`messageIsForRoom(aMessage)`  This case is true if the given message was a private message intended for the room.  This can be used to filter our server messages or private messages directed to Rafi.  It also filters out things that Rafi says, as those message don't show up as room messages.
+
+`messageIsFromNick(aMessage, aNick)`  This case is true if the given message is from a certain nick.  This can be used to respond to different people in different ways.  It is not that flexible since it responds to hard coded nicks.
+
 ### Responding to IRC activity
 
 Once a case is satisfied you will want Rafi to do something.  I've provided only two basic avenues for him at the moment.

@@ -81,13 +81,30 @@ def messageContainsKeyword(aMessage, aKeyword):
 #(out) True or False depending on if you should respond to these keywords
 def messageContainsKeywords(aMessage, someKeywords):
 	if aMessage == None: return False
-	isRoomMessage = aMessage.find('PRIVMSG ' + room) != -1
+	isRoomMessage = messageIsForRoom(aMessage)
 
 	keywordsArePresent = True
 	for keyword in someKeywords:
 		if aMessage.find(keyword) == -1: keywordsArePresent = False
 
   	return isRoomMessage and keywordsArePresent
+
+#Checks to see if the message is a private message for the room
+#(in) aMessage - The message that was recieved
+#(out) True or False depending on if the message was private to the room
+def messageIsForRoom(aMessage):
+	if aMessage == None: return False
+	isRoomMessage = aMessage.find('PRIVMSG ' + room) != -1
+	return isRoomMessage
+
+#Checks to see if the message is from a given nick
+#(in) aMessage - The message that was recieved
+#(in) aNick - The nick you want to see if the message was from
+#(out) True or False depending on if the message was from the given nick
+def messageIsFromNick(aMessage, aNick):
+	if aMessage == None: return False
+	nick = aMessage[1:aMessage.find('!')]
+	return True if aNick == nick else False
 
 #Checks to see if there has been any activity in a given period of time
 #(in)aConnection - The IRC connection to monitor for activity
