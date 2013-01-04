@@ -6,6 +6,11 @@ from bs4 import BeautifulSoup
 def main(irc):
 	message = irc.lastMessage()
 
+	#Don't check for messages that aren't for the room
+	#This also filters out things said by Rafi, so it only looks at other nicks messages'
+	if not messageIsForRoom(message):
+		return
+
 	try:
 		#Request TWSS for a given message
 		twssMessage = message[message.rfind(':') + 1:].replace(' ', '+')
