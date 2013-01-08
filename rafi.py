@@ -14,5 +14,6 @@ while True:
    baseModule.main(irc)
    redditModule.main(irc)
    twssModule.main(irc)
+   weatherModule.main(irc)
    
    print irc.lastMessage()
