@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*- 
 from ircBase import *
 from random import randint
 import sys
@@ -34,7 +35,7 @@ def main(irc):
 		rafiQuotes.append("We're also gonna sell your dick for gasoline.")
 		rafiQuotes.append("Remember, his weak spot is his dick!")
 		rafiQuotes.append("I roofied like 40% of the drinks here. It's a numbers game.")
-		rafiQuotes.append("Spoiler Alert! Guess what the landlord is gonna find when he unclogs the toilet?? Haha...His fucking cat!")
+		rafiQuotes.append("Spoiler Alert! Guess what the landlord is gonna find when he unclogs the toilet?? Haha... His fucking cat!")
 		rafiQuotes.append("I could watch her walk out of a room for hours. My sister’s body is bonkers. I hope you are hitting that!!")
 		rafiQuotes.append("I'm day drunk, get ready to see my dick.")
 		rafiQuotes.append("Sometimes when I puke I shit.")
