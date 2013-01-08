@@ -44,6 +44,8 @@ Note that most cases take the last IRC message as the first argument but some ca
 
 `messageIsFromNick(aMessage, aNick)`  This case is true if the given message is from a certain nick.  This can be used to respond to different people in different ways.  It is not that flexible since it responds to hard coded nicks.
 
+`bodyOfMessage(aMessage)`  This returns the actual content of a message (the part that usual gets shown in IRC clients).  It does not include details like the room, the nick, or any server information that can be found in the normal message.  Usefull for responding to the text that a person types.
+
 ### Responding to IRC activity
 
 Once a case is satisfied you will want Rafi to do something.  I've provided only two basic avenues for him at the moment.
