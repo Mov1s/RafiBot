@@ -13,8 +13,8 @@ def main(irc):
 
 	try:
 		#Request TWSS for a given message
-		twssMessage = message[message.rfind(':') + 1:].replace(' ', '+')
-		url = "http://twss-classifier.heroku.com/?sentence=" + twssMessage
+		twss = bodyOfMessage(message).replace(' ', '+')
+		url = "http://twss-classifier.heroku.com/?sentence=" + twss
 		responseBodyString = urllib2.urlopen(url).read()
 
 		#Find TWSS span
