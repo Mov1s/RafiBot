@@ -10,6 +10,7 @@ uriFormat = '/ajax/services/search/images?v=1.0&rsz=8&q='
 
 def imageMe(query):
   try:
+    query = query.replace(' ', '+')
     googleURI.request('GET', uriFormat + query)
     response = googleURI.getresponse()
     responseString = response.read()
