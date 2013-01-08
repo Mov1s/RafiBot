@@ -3,8 +3,8 @@ import time
 
 network = 'irc.freenode.net'
 port = 6667
-room = '#MadsenRules'
-nick = 'rafiTest'
+room = '#phyll1s'
+nick = 'rafiBot'
 
 #A class representing an IRC connection
 #Keeps a reference to the IRC socket we are communicating on
