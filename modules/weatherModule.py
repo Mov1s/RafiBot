@@ -1,27 +1,36 @@
+# -*- coding:utf8 -*-
 from ircBase import *
 import urllib2
 import urllib
 from bs4 import BeautifulSoup
-python string concatenation
-def main(irc):
-  message = irc.lastMessage()
 
+def main(irc):
+  	message = irc.lastMessage()
+	
+	
 	#Temperature command
 	if messageIsBotCommand(message, 'temperature'):
-		return
+		try:
+			#Request Weather Underground for temperature
+			temperature = message[message.rfind('temperature') + 12:].replace(' ', '+')
+			temperature = temperature.replace(',', '%2C')
+			url = "http://www.wunderground.com/cgi-bin/findweather/hdfForecast?query=" + temperature
+			responseBodyString = urllib2.urlopen(url).read()
 
-	try:
-		#Request Weather Underground for temperature
-		temperature = message[message.rfind('temperature') + 1:].replace(' ', '+')
-		temperature = temperature.replace(',', '%2C')
-		url = "http://www.wunderground.com/cgi-bin/findweather/hdfForecast?query=" + temperature
-		responseBodyString = urllib2.urlopen(url).read()
-
-		#Find Current Temperature Span
-		soup = BeautifulSoup(responseBodyString)
-		temperatureSpan = soup.find("span", {"id": "rapidtemp"})
-		feelsLike = soup.find("div", {"id": "tempFeel"})
-
-		irc.sendMessage(temperatureSpan + ' °F ' + feelsLike)
-	except:
-		return
+			soup = BeautifulSoup(responseBodyString)
+			
+			#Find Current Temperature Span
+			temperatureSpan = soup.find("span", {"id": "rapidtemp"})
+			temperatureSpan = temperatureSpan.find("span", {"class": "b"})
+			
+			#Find Feels Like Temperature
+			feelsLike = soup.find("div", {"id": "tempFeel"})
+			feelsLike = feelsLike.find("span", {"class": "b"})
+				
+			#Find Location
+			locationName = soup.find("h1", {"id": "locationName"})
+			#locationName = locationName.find("span", {"class": "b"})
+			
+			irc.sendMessage("It is " + temperatureSpan.string + "F, Feels Like " + feelsLike.string + "F in " + locationName.string)
+		except:
+			return

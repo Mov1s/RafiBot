@@ -2,6 +2,7 @@ import ircBase
 import modules.baseModule as baseModule
 import modules.redditModule as redditModule
 import modules.twssModule as twssModule
+import modules.weatherModule as weatherModule
 
 irc = ircBase.createIrcConnection()
 
