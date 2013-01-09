@@ -1,10 +1,11 @@
 import socket
 import time
+import re
 
 network = 'irc.freenode.net'
 port = 6667
-room = '#MadsenRules'
-nick = 'rafiTest'
+room = '#phyll1s'
+nick = 'rafiBot'
 
 #A class representing an IRC connection
 #Keeps a reference to the IRC socket we are communicating on
@@ -94,8 +95,21 @@ def messageContainsKeywords(aMessage, someKeywords):
 #(out) True or False depending on if the message was private to the room
 def messageIsForRoom(aMessage):
 	if aMessage == None: return False
-	isRoomMessage = aMessage.find('PRIVMSG ' + room) != -1
+	expression = re.compile('PRIVMSG #(.*) :(.*)', re.IGNORECASE)
+  	match = expression.search(aMessage)
+	isRoomMessage = True if match else False
 	return isRoomMessage
+
+#Returns the body of a message (the text that a person says, striped of all server text)
+#(in) aMessage - The message that was recieved
+#(out) String of just the message's body
+def bodyOfMessage(aMessage):
+	if aMessage == None: return None
+	expression = re.compile('PRIVMSG (.*) :(.*)', re.IGNORECASE)
+  	match = expression.search(aMessage)
+	if match:
+			return match.group(2)
+	return None
 
 #Checks to see if the message is from a given nick
 #(in) aMessage - The message that was recieved
