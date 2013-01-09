@@ -23,7 +23,7 @@ def main(irc):
 	elif messageContainsKeywords(message, ['git', nick]):
 		irc.sendMessage('My source is at https://github.com/Mov1s/RafiBot.git')
 	#Print random Rafi quotes whenever rafi is mentioned
-	elif messageContainsKeyword(message, nick):
+	elif messageContainsKeyword(message, nick) and not messageIsBotCommand(message, ''):
 		rafiQuotes = []
 		rafiQuotes.append("I'm literally gonna sodomize you. I'm gonna have non consensual sex with your face and butt and then I'm going for your wife and children... Just kidding.")
 		rafiQuotes.append("JUKEBOX! I'm gonna put $7 worth of Hoobastank in it!")
