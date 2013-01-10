@@ -5,8 +5,8 @@ from urlparse import urlparse
 
 globalNetwork = 'irc.freenode.net'
 globalPort = 6667
-globalRoom = '#MadsenRules'
-globalNick = 'rafiTest2'
+globalRoom = '#phyll1s'
+globalNick = 'rafiBot'
 
 #A class representing an IRC connection
 #Keeps a reference to the IRC socket we are communicating on
@@ -53,7 +53,8 @@ class ircConnection():
 	#(in)aMessage - The message to add to message log
 	def addMessageToLog(self, aMessage):
 		self.messageLog.append(aMessage)
-		self.lastMessageTimestamp = time.time()
+		if not aMessage.isPing:
+			self.lastMessageTimestamp = time.time()
 		if len(self.messageLog) > 20:
 			del self.messageLog[0]
 
@@ -115,7 +116,7 @@ class ircMessage():
 
 		#Get sending nick
 		nickExpression = re.compile(':(.*)!', re.IGNORECASE)
-	  	match = nickExpression.search(newMessage.rawMessage)
+	  	match = nickExpression.search(newMessage.rawMessage[:18])
 		if match:
 			newMessage.sendingNick = match.group(1).strip()
 		else:
@@ -142,7 +143,7 @@ class ircMessage():
   			bcExpression = re.compile(':!' + anIrcConnection.nick + ' (.*)', re.IGNORECASE)
   			match = bcExpression.search(newMessage.rawMessage)
   			if match:
-  				newMessage.botCommand = match.group(1).strip()
+  				newMessage.botCommand = match.group(1).split()[0].strip()
   				newMessage.isBotCommand = True
 
   		#Get ping

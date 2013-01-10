@@ -7,12 +7,11 @@ from bs4 import BeautifulSoup
 def main(irc):
   	message = irc.lastMessage()
 	
-	
 	#Temperature command
-	if messageIsBotCommand(message, 'temperature'):
+	if message.botCommand == 'temperature':
 		try:
 			#Request Weather Underground for temperature
-			temperature = message[message.rfind('temperature') + 12:].replace(' ', '+')
+			temperature = message.body[message.body.rfind('temperature') + 12:].replace(' ', '+')
 			temperature = temperature.replace(',', '%2C')
 			url = "http://www.wunderground.com/cgi-bin/findweather/hdfForecast?query=" + temperature
 			responseBodyString = urllib2.urlopen(url).read()
@@ -31,6 +30,6 @@ def main(irc):
 			locationName = soup.find("h1", {"id": "locationName"})
 			#locationName = locationName.find("span", {"class": "b"})
 			
-			irc.sendMessage("It is " + temperatureSpan.string + "F, Feels Like " + feelsLike.string + "F in " + locationName.string)
+			irc.sendMessageToRoom("It is " + temperatureSpan.string + "F, Feels Like " + feelsLike.string + "F in " + locationName.string)
 		except:
 			return
