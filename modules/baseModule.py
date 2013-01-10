@@ -3,7 +3,7 @@ from ircBase import *
 from random import randint
 import sys
 
-#Because of importing ircBase a few variables are always available: nick, room, network, port
+#irc has a few variables that are available: nick, room, network, port
 #So that is where those come from if you see them being used here
 
 def main(irc):
@@ -20,10 +20,10 @@ def main(irc):
 		irc.sendCommand('QUIT')
 		sys.exit()
 	#Print Rafi's GitHub if someone mentions it
-	elif messageContainsKeywords(message, ['git', nick]):
+	elif messageContainsKeywords(message, ['git', irc.nick]):
 		irc.sendMessage('My source is at https://github.com/Mov1s/RafiBot.git')
 	#Print random Rafi quotes whenever rafi is mentioned
-	elif messageContainsKeyword(message, nick) and not messageIsBotCommand(message, ''):
+	elif messageContainsKeyword(message, irc.nick) and not messageIsBotCommand(message, ''):
 		rafiQuotes = []
 		rafiQuotes.append("I'm literally gonna sodomize you. I'm gonna have non consensual sex with your face and butt and then I'm going for your wife and children... Just kidding.")
 		rafiQuotes.append("JUKEBOX! I'm gonna put $7 worth of Hoobastank in it!")

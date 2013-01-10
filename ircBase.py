@@ -2,10 +2,10 @@ import socket
 import time
 import re
 
-network = 'irc.freenode.net'
-port = 6667
-room = '#phyll1s'
-nick = 'rafiBot'
+initNetwork = 'irc.freenode.net'
+initPort = 6667
+initRoom = '#MadsenTest'
+initNick = 'rafiMadsen'
 
 #A class representing an IRC connection
 #Keeps a reference to the IRC socket we are communicating on
@@ -15,6 +15,10 @@ class ircConnection():
 	messageLog = []
 	lastMessageWasPing = True
 	lastMessageTimestamp = time.time()
+	network = initNetwork
+	port = initPort 
+	room = initRoom
+	nick = initNick
 
 	#Adds a message to the message log
 	#(in)aMessage - The message to add to message log
@@ -34,7 +38,7 @@ class ircConnection():
 	#(in)aMessage - The message to be sent to the room
 	def sendMessage(self, aMessage):
 		self.addMessageToLog(aMessage)
-		self.connection.send('PRIVMSG ' + room + ' :' + aMessage + '\r\n' )
+		self.connection.send('PRIVMSG ' + self.room + ' :' + aMessage + '\r\n' )
 
 	#Sends a PONG message message to the server when a PING is issued
 	#(in)aPingMessage - The PING message that was issued from the server
@@ -44,18 +48,27 @@ class ircConnection():
 
 	#Sends a command to the IRC server
 	#(in)aCommand - The command to be sent to the server
+	#TODO - Find a way around using initNick
 	def sendCommand(self, aCommand):
+		global initNick
+			
 		self.connection.send(aCommand + '\r\n')
+		if(aCommand.lower().find('join') <> -1):
+			self.connection.send('part ' + self.room + '\r\n')
+			self.room = aCommand[aCommand.lower().rfind('join') + 5:].rstrip()
+		elif(aCommand.lower().find('nick') <> -1):
+			self.nick = aCommand[aCommand.lower().rfind('nick') + 5:].rstrip().lstrip()
+			initNick = self.nick
 
 #Creates an IRC connection using the constants at the top of the file
 #(out) The newly created IRC connection
 def createIrcConnection():
 	irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	irc.connect((network, port))
+	irc.connect((initNetwork, initPort))
 	print irc.recv(4096)
-	irc.send('NICK ' + nick + '\r\n')
-	irc.send('USER ' + nick + ' ' + nick + ' ' + nick + ' :Python IRC\r\n')
-	irc.send('JOIN ' + room + '\r\n')
+	irc.send('NICK ' + initNick + '\r\n')
+	irc.send('USER ' + initNick + ' ' + initNick + ' ' + initNick + ' :Python IRC\r\n')
+	irc.send('JOIN ' + initRoom + '\r\n')
 
 	aConnection = ircConnection()
 	aConnection.connection = irc
@@ -65,9 +78,10 @@ def createIrcConnection():
 #(in) aMessage - The message that was recieved
 #(in) aCommand - The command that you want to respond to
 #(out) True or False depending on if you should respond to this command
+#TODO - Find a way to not use initNick
 def messageIsBotCommand(aMessage, aCommand):
 	if aMessage == None: return False
-	return aMessage.find('!' + nick + ' ' + aCommand) != -1
+	return aMessage.find('!' + initNick + ' ' + aCommand) != -1
 
 #Checks to see if a message in this room contains a single keyword
 #(in) aMessage - The message that was recieved
