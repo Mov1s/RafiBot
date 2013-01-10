@@ -45,7 +45,6 @@ class ircConnection():
 	def respondToServerMessages(self):
 		message = self.connection.recv(4096)
 		message = ircMessage.newMessage(self, message)
-		message.ircConnection = self
 		if message.isPing:
 			self.sendPongForPing(message)
 		self.addMessageToLog(message)
@@ -73,6 +72,17 @@ class ircConnection():
 	def sendCommand(self, aCommand):
 		self.connection.send(aCommand + '\r\n')
 
+	#Sends a message to the IRC room
+	#(in)aMessage - The message to be sent to the room
+	#(in)aRoom - (optional)The room send the message to, defaults to the room of this irc connection
+	def sendMessageToRoom(self, aMessage, aRoom = None):
+		if aRoom == None: aRoom = self.room
+
+		spoofRawMessage = ':{0}! PRIVMSG {1} :{2}'.format(self.nick, aRoom, aMessage)
+		spoofMessage = ircMessage().newMessage(self, spoofRawMessage)
+		self.addMessageToLog(spoofMessage)
+		self.connection.send('PRIVMSG ' + aRoom + ' :' + aMessage + '\r\n' )
+
 class ircMessage():
 	ircConnection = None
 
@@ -94,11 +104,13 @@ class ircMessage():
 	isBotCommand = False
 
 	#Creates a new ircMessage object from a raw irc message string
+	#(in)anIrcConnection - The IRC connection that this message was recieved on
 	#(in)aRawMessage - The message string as it comes from the server
 	#(out) A shiny new ircMessage object
 	@staticmethod
 	def newMessage(anIrcConnection, aRawMessage):
 		newMessage = ircMessage()
+		newMessage.ircConnection = anIrcConnection
 		newMessage.rawMessage = aRawMessage
 
 		#Get sending nick
@@ -151,31 +163,23 @@ class ircMessage():
 
   		return newMessage
 
-  	#Sends a message to the IRC room
-	#(in)aMessage - The message to be sent to the room
-	def sendToRoom(self, aMessage, aRoom = None):
-		if aRoom == None: aRoom = self.ircConnection.room
-		self.ircConnection.connection.send('PRIVMSG ' + aRoom + ' :' + aMessage + '\r\n' )
+	#Checks to see if a message in this room contains a single keyword
+	#(in) aKeyword - The keyword that you want to respond to
+	#(out) True or False depending on if you should respond to this keyword
+	def containsKeyword(self, aKeyword):
+		return self.containsKeywords([aKeyword])
 
-#Checks to see if a message in this room contains a single keyword
-#(in) aMessage - The message that was recieved
-#(in) aKeyword - The keyword that you want to respond to
-#(out) True or False depending on if you should respond to this keyword
-def messageContainsKeyword(aMessage, aKeyword):
-	return messageContainsKeywords(aMessage, [aKeyword])
+	#Checks to see if a message in this room contains some keywords
+	#(in) someKeywords - A list of keywords that you want to respond to
+	#(out) True or False depending on if you should respond to these keywords
+	def containsKeywords(self, someKeywords):
+		if self.body == None: return False
 
-#Checks to see if a message in this room contains some keywords
-#(in) aMessage - The message that was recieved
-#(in) someKeywords - A list of keywords that you want to respond to
-#(out) True or False depending on if you should respond to these keywords
-def messageContainsKeywords(aMessage, someKeywords):
-	if aMessage.body == None: return False
+		keywordsArePresent = True
+		for keyword in someKeywords:
+			if self.body.find(keyword) == -1: keywordsArePresent = False
 
-	keywordsArePresent = True
-	for keyword in someKeywords:
-		if aMessage.body.find(keyword) == -1: keywordsArePresent = False
-
-  	return keywordsArePresent
+	  	return keywordsArePresent
 
 #Checks to see if there has been any activity in a given period of time
 #(in)aConnection - The IRC connection to monitor for activity
