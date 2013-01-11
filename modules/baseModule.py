@@ -16,6 +16,12 @@ def main(irc):
 		irc.sendMessageToRoom('Brb, updating')
 		irc.sendCommand('QUIT')
 		sys.exit()
+	#Print the last 10 room messages
+	elif message.botCommand == 'history':
+		print ' ------------ History Start --------------------'
+		for aMessage in irc.messageLog:
+			if aMessage.body != None:
+				irc.sendMessageToRoom('{0}: {1}'.format(aMessage.sendingNick, aMessage.body))
 	#Print Rafi's GitHub if someone mentions it
 	elif message.containsKeywords(['git', irc.nick]):
 		irc.sendMessageToRoom('My source is at https://github.com/Mov1s/RafiBot.git')

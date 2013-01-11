@@ -15,7 +15,7 @@ while True:
    #Command Modules
    baseModule.main(irc)
    redditModule.main(irc)
-   twssModule.main(irc)
+   # twssModule.main(irc)
    weatherModule.main(irc)
    imageModule.main(irc)
    

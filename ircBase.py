@@ -156,6 +156,7 @@ class ircMessage():
   		#Get links
   		if not newMessage.body == None:
   			wordArray = newMessage.body.split()
+  			newMessage.links = []
   			for word in wordArray:
   				url = urlparse(word)
 				if url.scheme == 'http' or url.scheme == 'https':
