@@ -1,18 +1,17 @@
 from ircBase import *
-import httplib
+import urllib2
 import json
 import re
 from random import randint
 
-googleAPI = 'ajax.googleapis.com'
-googleURI = httplib.HTTPConnection(googleAPI)
+googleAPI = 'http://ajax.googleapis.com'
 uriFormat = '/ajax/services/search/images?v=1.0&rsz=8&q='
 
 def imageMe(query):
   try:
     query = query.replace(' ', '+')
-    googleURI.request('GET', uriFormat + query)
-    response = googleURI.getresponse()
+    url = googleAPI + uriFormat + query
+    response = urllib2.urlopen(url)
     responseString = response.read()
     responseJSON = json.loads(responseString)
     length = len(responseJSON['responseData']['results'])
@@ -20,11 +19,10 @@ def imageMe(query):
       image = responseJSON['responseData']['results'][randint(0, length - 1)]['unescapedUrl']
       return image
   except:
-    global googleURI
-    googleURI = httplib.HTTPConnection(googleAPI)
+    return None
 
 def getQuery(message):
-  expression = re.compile(':(image|img)( me)? (.*)', re.IGNORECASE)
+  expression = re.compile(':(image|img)( me| ma)? (.*)', re.IGNORECASE)
   match = expression.search(message)
   if match:
     return match.group(3)
