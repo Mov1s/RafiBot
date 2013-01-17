@@ -8,13 +8,13 @@ def main(irc):
 
 	#Quit when told to
 	if message.botCommand == 'quit':
-		irc.sendMessageToRoom('Later fags')
-		irc.sendCommand('QUIT')
+		ircMessage().newRoomMessage(irc, 'Later fags').send()
+		ircMessage().newServerMessage(irc, 'QUIT').send()
 		sys.exit()
 	#Quit with update message
 	elif message.botCommand == 'update':
-		irc.sendMessageToRoom('Brb, updating')
-		irc.sendCommand('QUIT')
+		ircMessage().newRoomMessage(irc, 'Brb, updating').send()
+		ircMessage().newServerMessage(irc, 'QUIT').send()
 		sys.exit()
 	#Print the last 10 room messages
 	elif message.botCommand == 'history':
@@ -28,10 +28,11 @@ def main(irc):
 		for i in range(0, historyDepth):
 			aMessage = irc.messageLog[len(irc.messageLog) - 1 - historyDepth + i]
 			if aMessage.body != None:
-				irc.sendMessageToRoom('{0}: {1}'.format(aMessage.sendingNick, aMessage.body), offRecord = True)
+				sendingMessageBody = '{0}: {1}'.format(aMessage.sendingNick, aMessage.body)
+				ircMessage().newRoomMessage(irc, sendingMessageBody, offRecord = True).send()
 	#Print Rafi's GitHub if someone mentions it
 	elif message.containsKeywords(['git', irc.nick]):
-		irc.sendMessageToRoom('My source is at https://github.com/Mov1s/RafiBot.git')
+		ircMessage().newRoomMessage(irc, 'My source is at https://github.com/Mov1s/RafiBot.git').send()
 	#Print random Rafi quotes whenever rafi is mentioned
 	elif message.containsKeyword(irc.nick) and not message.isBotCommand:
 		rafiQuotes = []
@@ -51,7 +52,7 @@ def main(irc):
 		rafiQuotes.append("Sometimes when I puke I shit.")
 
 		quoteIndex = randint(0, len(rafiQuotes) - 1)
-		irc.sendMessageToRoom(rafiQuotes[quoteIndex])
+		ircMessage().newRoomMessage(irc, rafiQuotes[quoteIndex]).send()
 	#Print 'Bewbs' if there has been no room activity for 30 min
-	elif noRoomActivityForTime(irc, 1800):
-		irc.sendMessageToRoom('Bewbs')
+	elif irc.noRoomActivityForTime(1800):
+		ircMessage().newRoomMessage(irc, 'Bewbs').send()
