@@ -52,12 +52,12 @@ def main(irc):
 						commentLink = getRedditCommentsForLink(logMessage.links[0])
 						break
 			if commentLink:
-				irc.sendMessageToRoom("Comments at " + commentLink)
+				ircMessage().newRoomMessage(irc, "Comments at " + commentLink).send()
 			else:
-				irc.sendMessageToRoom("No source found")
+				ircMessage().newRoomMessage(irc, "No source found").send()
 
 	#If no room activity for 10 mins link the top rated carPorn picture if it hasn't already been linked
-	if noRoomActivityForTime(irc, 600):
+	if irc.noRoomActivityForTime(600):
 		try:
 			urlFormat = '/r/carporn'
 			url = 'http://www.reddit.com' + urlFormat
@@ -73,7 +73,7 @@ def main(irc):
 			topRedditLink = anchors[0]['href']
 			if topRedditLink != lastPostedLink:
 				lastPostedLink = topRedditLink
-				irc.sendMessageToRoom(topRedditLink)
+				ircMessage.newRoomMessage(irc, topRedditLink).send()
 		except:
 			return
 

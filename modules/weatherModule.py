@@ -30,7 +30,7 @@ def main(irc):
 			locationName = soup.find("h1", {"id": "locationName"})
 			#locationName = locationName.find("span", {"class": "b"})
 			
-			irc.sendMessageToRoom("It is " + temperatureSpan.string + "F, Feels Like " + feelsLike.string + "F in " + locationName.string)
+			ircMessage().newRoomMessage(irc, "It is " + temperatureSpan.string + "F, Feels Like " + feelsLike.string + "F in " + locationName.string).send()
 		except:
 			return
 
@@ -60,6 +60,6 @@ def main(irc):
 			locationName = soup.find("h1", {"id": "locationName"})
 			#locationName = locationName.find("span", {"class": "b"})
 
-			irc.sendMessageToRoom("It is " + temperatureSpan.string + "F and " + currentCondition.string + ", Feels Like " + feelsLike.string + "F in " + locationName.string)
+			ircMessage().newRoomMessage(irc, "It is " + temperatureSpan.string + "F and " + currentCondition.string + ", Feels Like " + feelsLike.string + "F in " + locationName.string).send()
 		except:
 			return
