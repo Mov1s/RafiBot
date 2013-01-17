@@ -18,10 +18,17 @@ def main(irc):
 		sys.exit()
 	#Print the last 10 room messages
 	elif message.botCommand == 'history':
-		print ' ------------ History Start --------------------'
-		for aMessage in irc.messageLog:
+		messageParts = message.body.split()
+		historyDepth = 10 if len(irc.messageLog) > 11 else len(irc.messageLog) - 1
+		if len(messageParts) >= 3:
+			try:
+				historyDepth = int(messageParts[2]) if int(messageParts[2]) < len(irc.messageLog) else len(irc.messageLog) - 1
+			except:
+				return
+		for i in range(0, historyDepth):
+			aMessage = irc.messageLog[len(irc.messageLog) - 1 - historyDepth + i]
 			if aMessage.body != None:
-				irc.sendMessageToRoom('{0}: {1}'.format(aMessage.sendingNick, aMessage.body))
+				irc.sendMessageToRoom('{0}: {1}'.format(aMessage.sendingNick, aMessage.body), offRecord = True)
 	#Print Rafi's GitHub if someone mentions it
 	elif message.containsKeywords(['git', irc.nick]):
 		irc.sendMessageToRoom('My source is at https://github.com/Mov1s/RafiBot.git')

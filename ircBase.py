@@ -76,33 +76,35 @@ class ircConnection():
 	#Sends a message to the IRC room
 	#(in)aMessage - The message to be sent to the room
 	#(in)aRoom - (optional)The room send the message to, defaults to the room of this irc connection
-	def sendMessageToRoom(self, aMessage, aRoom = None):
+	def sendMessageToRoom(self, aMessage, aRoom = None, offRecord = False):
 		if aRoom == None: aRoom = self.room
 
-		spoofRawMessage = ':{0}! PRIVMSG {1} :{2}'.format(self.nick, aRoom, aMessage)
+		spoofRawMessage = ':{0}! PRIVMSG {1} :{2}\r\n'.format(self.nick, aRoom, aMessage)
 		spoofMessage = ircMessage().newMessage(self, spoofRawMessage)
-		self.addMessageToLog(spoofMessage)
+		if not offRecord: self.addMessageToLog(spoofMessage)
 		self.connection.send('PRIVMSG ' + aRoom + ' :' + aMessage + '\r\n' )
 
 class ircMessage():
-	ircConnection = None
+	#Initializes all the properties
+	def __init__(self):
+		self.ircConnection = None
 
-	#Message properties
-	rawMessage = None
-	body = None
-	botCommand = None
-	sendingNick = None
-	recievingRoom = None
-	privateMessageRecipient = None
-	links = []
+		#Message properties
+		self.rawMessage = None
+		self.body = None
+		self.botCommand = None
+		self.sendingNick = None
+		self.recievingRoom = None
+		self.privateMessageRecipient = None
+		self.links = []
 
-	#Usefull flags
-	hasLinks = False
-	isPrivateMessage = False
-	isServerMessage = False
-	isRoomMessage = False
-	isPing = False
-	isBotCommand = False
+		#Usefull flags
+		self.hasLinks = False
+		self.isPrivateMessage = False
+		self.isServerMessage = False
+		self.isRoomMessage = False
+		self.isPing = False
+		self.isBotCommand = False
 
 	#Creates a new ircMessage object from a raw irc message string
 	#(in)anIrcConnection - The IRC connection that this message was recieved on
@@ -156,7 +158,6 @@ class ircMessage():
   		#Get links
   		if not newMessage.body == None:
   			wordArray = newMessage.body.split()
-  			newMessage.links = []
   			for word in wordArray:
   				url = urlparse(word)
 				if url.scheme == 'http' or url.scheme == 'https':

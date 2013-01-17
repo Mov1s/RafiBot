@@ -50,6 +50,7 @@ def main(irc):
 				for logMessage in reversed(irc.messageLog):
 					if logMessage.hasLinks:
 						commentLink = getRedditCommentsForLink(logMessage.links[0])
+						break
 			if commentLink:
 				irc.sendMessageToRoom("Comments at " + commentLink)
 			else:
