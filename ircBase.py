@@ -1,141 +1,237 @@
 import socket
 import time
 import re
+from urlparse import urlparse
 
-network = 'irc.freenode.net'
-port = 6667
-room = '#phyll1s'
-nick = 'rafiBot'
+globalNetwork = 'irc.freenode.net'
+globalPort = 6667
+globalRoom = '#phyll1s'
+globalNick = 'rafiBot'
 
 #A class representing an IRC connection
 #Keeps a reference to the IRC socket we are communicating on
 #Keeps a reference of the last 20 messages sent over a chanel
 class ircConnection():
-	connection = None
-	messageLog = []
-	lastMessageWasPing = True
-	lastMessageTimestamp = time.time()
+
+	#Intializes all the properties
+	def __init__(self):
+		self.network = None
+		self.port = None
+		self.room = None
+		self.nick = None
+
+		self.connection = None
+		self.messageLog = []
+		self.lastMessageTimestamp = time.time()
+
+	#Creates an IRC connection using the constants at the top of the file
+	#(out) The newly created IRC connection
+	@staticmethod
+	def newConnection(aNetwork = globalNetwork, aPort = globalPort, aRoom = globalRoom, aNick = globalNick):
+		newConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		newConnection.connect((aNetwork, aPort))
+		print newConnection.recv(4096)
+		newConnection.send('NICK ' + aNick + '\r\n')
+		newConnection.send('USER ' + aNick + ' ' + aNick + ' ' + aNick + ' :Python IRC\r\n')
+		newConnection.send('JOIN ' + aRoom + '\r\n')
+
+		aConnection = ircConnection()
+		aConnection.connection = newConnection
+		aConnection.network = aNetwork
+		aConnection.port = aPort
+		aConnection.room = aRoom
+		aConnection.nick = aNick
+		return aConnection
+
+	#Main message handler for an IRC bot
+	#Recieves message from the server, responds if it is a ping request, otherwise log the message
+	def respondToServerMessages(self):
+		message = self.connection.recv(4096)
+		message = ircMessage().newMessageFromRawMessage(self, message)
+		if message.isPing:
+			self.sendPongForPing(message)
+		self.addMessageToLog(message)
 
 	#Adds a message to the message log
 	#(in)aMessage - The message to add to message log
 	def addMessageToLog(self, aMessage):
-		self.lastMessageWasPing = False
 		self.messageLog.append(aMessage)
-		self.lastMessageTimestamp = time.time()
+		if not aMessage.isPing:
+			self.lastMessageTimestamp = time.time()
 		if len(self.messageLog) > 20:
 			del self.messageLog[0]
 
 	#Returns the last recieved message
 	#(out) The last message in the connection log
 	def lastMessage(self):
-		return self.messageLog[-1] if self.lastMessageWasPing == False else None
-
-	#Sends a message to the IRC room
-	#(in)aMessage - The message to be sent to the room
-	def sendMessage(self, aMessage):
-		self.addMessageToLog(aMessage)
-		self.connection.send('PRIVMSG ' + room + ' :' + aMessage + '\r\n' )
+		return self.messageLog[-1]
 
 	#Sends a PONG message message to the server when a PING is issued
 	#(in)aPingMessage - The PING message that was issued from the server
 	def sendPongForPing(self, aPingMessage):
-		self.lastMessageWasPing = True
-		self.connection.send ('PONG ' + aPingMessage.split()[1] + '\r\n')
+		self.connection.send ('PONG ' + aPingMessage.rawMessage.split()[1] + '\r\n')
 
-	#Sends a command to the IRC server
-	#(in)aCommand - The command to be sent to the server
-	def sendCommand(self, aCommand):
-		self.connection.send(aCommand + '\r\n')
+	#Sends a message to the IRC server
+	#(in)aMessage - The message to be sent
+	def sendMessage(self, aMessage):
+		if aMessage.isRoomMessage:
+			self.connection.send('PRIVMSG ' + aMessage.recievingRoom + ' :' + aMessage.body + '\r\n')
+		elif aMessage.isPrivateMessage:
+			self.connection.send('PRIVMSG ' + aMessage.privateMessageRecipient + ' :' + aMessage.body + '\r\n')
+		elif aMessage.isServerMessage:
+			self.connection.send(aMessage.body + '\r\n')
 
-#Creates an IRC connection using the constants at the top of the file
-#(out) The newly created IRC connection
-def createIrcConnection():
-	irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	irc.connect((network, port))
-	print irc.recv(4096)
-	irc.send('NICK ' + nick + '\r\n')
-	irc.send('USER ' + nick + ' ' + nick + ' ' + nick + ' :Python IRC\r\n')
-	irc.send('JOIN ' + room + '\r\n')
+		if not aMessage.isOffRecord: self.addMessageToLog(aMessage)
 
-	aConnection = ircConnection()
-	aConnection.connection = irc
-	return aConnection
+	#Checks to see if there has been any activity in a given period of time
+	#(in)timeInSeconds - The time frame to monitor for activity
+	#(out) True or False depending on if there has been any activity in the given time frame
+	def noRoomActivityForTime(self, timeInSeconds):
+		currentTime = time.time()
+		return currentTime - self.lastMessageTimestamp >= timeInSeconds
 
-#Checks to see if a message is a command meant for this bot
-#(in) aMessage - The message that was recieved
-#(in) aCommand - The command that you want to respond to
-#(out) True or False depending on if you should respond to this command
-def messageIsBotCommand(aMessage, aCommand):
-	if aMessage == None: return False
-	return aMessage.find('!' + nick + ' ' + aCommand) != -1
+class ircMessage():
+	#Initializes all the properties
+	def __init__(self):
+		self.ircConnection = None
 
-#Checks to see if a message in this room contains a single keyword
-#(in) aMessage - The message that was recieved
-#(in) aKeyword - The keyword that you want to respond to
-#(out) True or False depending on if you should respond to this keyword
-def messageContainsKeyword(aMessage, aKeyword):
-	return messageContainsKeywords(aMessage, [aKeyword])
+		#Message properties
+		self.rawMessage = None
+		self.body = None
+		self.botCommand = None
+		self.sendingNick = None
+		self.recievingRoom = None
+		self.privateMessageRecipient = None
+		self.links = []
 
-#Checks to see if a message in this room contains some keywords
-#(in) aMessage - The message that was recieved
-#(in) someKeywords - A list of keywords that you want to respond to
-#(out) True or False depending on if you should respond to these keywords
-def messageContainsKeywords(aMessage, someKeywords):
-	if aMessage == None: return False
-	isRoomMessage = messageIsForRoom(aMessage)
+		#Usefull flags
+		self.hasLinks = False
+		self.isPrivateMessage = False
+		self.isServerMessage = False
+		self.isRoomMessage = False
+		self.isPing = False
+		self.isBotCommand = False
+		self.isOffRecord = False
 
-	keywordsArePresent = True
-	for keyword in someKeywords:
-		if aMessage.find(keyword) == -1: keywordsArePresent = False
+	#Creates a new ircMessage object from a raw irc message string
+	#(in)anIrcConnection - The IRC connection that this message was recieved on
+	#(in)aRawMessage - The message string as it comes from the server
+	#(out) A shiny new ircMessage object
+	@staticmethod
+	def newMessageFromRawMessage(anIrcConnection, aRawMessage):
+		newMessage = ircMessage()
+		newMessage.ircConnection = anIrcConnection
+		newMessage.rawMessage = aRawMessage
 
-  	return isRoomMessage and keywordsArePresent
+		#Get sending nick
+		nickExpression = re.compile(':(.*)!', re.IGNORECASE)
+	  	match = nickExpression.search(newMessage.rawMessage[:18])
+		if match:
+			newMessage.sendingNick = match.group(1).strip()
+		else:
+			newMessage.isServerMessage = True
 
-#Checks to see if the message is a private message for the room
-#(in) aMessage - The message that was recieved
-#(out) True or False depending on if the message was private to the room
-def messageIsForRoom(aMessage):
-	if aMessage == None: return False
-	expression = re.compile('PRIVMSG #(.*) :(.*)', re.IGNORECASE)
-  	match = expression.search(aMessage)
-	isRoomMessage = True if match else False
-	return isRoomMessage
+		#Get private message or room message
+		if not newMessage.isServerMessage:
+			roomExpression = re.compile('PRIVMSG (#.*) :(.*)', re.IGNORECASE)
+  			match = roomExpression.search(newMessage.rawMessage)
+  			if match:
+	  			newMessage.body = match.group(2).strip()
+	  			newMessage.recievingRoom = match.group(1).strip()
+	  			newMessage.isRoomMessage = True
+	  		else:
+	  			pmExpression = re.compile('PRIVMSG (.*) :(.*)', re.IGNORECASE)
+  				match = pmExpression.search(newMessage.rawMessage)
+  				if match:
+  					newMessage.body = match.group(2).strip()
+  					newMessage.privateMessageRecipient = match.group(1).strip()
+  					newMessage.isPrivateMessage = True
 
-#Returns the body of a message (the text that a person says, striped of all server text)
-#(in) aMessage - The message that was recieved
-#(out) String of just the message's body
-def bodyOfMessage(aMessage):
-	if aMessage == None: return None
-	expression = re.compile('PRIVMSG (.*) :(.*)', re.IGNORECASE)
-  	match = expression.search(aMessage)
-	if match:
-			return match.group(2)
-	return None
+  		#Get bot command
+  		if not newMessage.isServerMessage:
+  			bcExpression = re.compile(':!' + anIrcConnection.nick + ' (.*)', re.IGNORECASE)
+  			match = bcExpression.search(newMessage.rawMessage)
+  			if match:
+  				newMessage.botCommand = match.group(1).split()[0].strip()
+  				newMessage.isBotCommand = True
 
-#Checks to see if the message is from a given nick
-#(in) aMessage - The message that was recieved
-#(in) aNick - The nick you want to see if the message was from
-#(out) True or False depending on if the message was from the given nick
-def messageIsFromNick(aMessage, aNick):
-	if aMessage == None: return False
-	nick = aMessage[1:aMessage.find('!')]
-	return True if aNick == nick else False
+  		#Get ping
+  		if newMessage.isServerMessage:
+  			pingExpression = re.compile('PING (.*)', re.IGNORECASE)
+  			match = pingExpression.search(newMessage.rawMessage)
+  			if match:
+  				newMessage.isPing = True
 
-#Checks to see if there has been any activity in a given period of time
-#(in)aConnection - The IRC connection to monitor for activity
-#(in)timeInSeconds - The time frame to monitor for activity
-#(out) True or False depending on if there has been any activity in the given time frame
-def noRoomActivityForTime(aConnection, timeInSeconds):
-	currentTime = time.time()
-	return currentTime - aConnection.lastMessageTimestamp >= timeInSeconds
+  		#Get links
+  		if not newMessage.body == None:
+  			wordArray = newMessage.body.split()
+  			for word in wordArray:
+  				url = urlparse(word)
+				if url.scheme == 'http' or url.scheme == 'https':
+					newMessage.hasLinks = True
+					newMessage.links.append(word)
 
-#Main message handler for an IRC bot
-#Recieves message from the server, responds if it is a ping request, otherwise log the message
-#(in)aConnection - IRC connection to monitor
-#(out) The updated IRC connection
-def respondToServerMessages(aConnection):
-	message = aConnection.connection.recv(4096)
-	if message.find('PING') != -1:
-	 	aConnection.sendPongForPing(message)
-	else:
-		aConnection.addMessageToLog(message)
-	return aConnection
+  		return newMessage
+
+  	#Creates a new ircMessage object to be sent out to a room
+  	#(in)anIrcConnection - The IRC connection that this message should be sent on
+  	#(in)theMessageBody - The body text for the new irc message
+  	#(in)aRoom - [optional] The room to send the message to if it is different than the default room of the irc connection
+  	#(in)offRecord - [optional] A flag for whether or not to keep this message in the message log
+  	#(out) A new ircMessage object
+  	@staticmethod
+  	def newRoomMessage(anIrcConnection, theMessageBody, aRoom = None, offRecord = False):
+		if aRoom == None: aRoom = anIrcConnection.room
+		spoofRawMessage = ':{0}! PRIVMSG {1} :{2}\r\n'.format(anIrcConnection.nick, aRoom, theMessageBody)
+		spoofMessage = ircMessage().newMessageFromRawMessage(anIrcConnection, spoofRawMessage)
+		spoofMessage.isOffRecord = offRecord
+		return spoofMessage
+
+	#Creates a new ircMessage object to be sent out to a nick
+  	#(in)anIrcConnection - The IRC connection that this message should be sent on
+  	#(in)theMessageBody - The body text for the new irc message
+  	#(in)aRecievingNick - The nick to send the message to
+  	#(in)offRecord - [optional] A flag for whether or not to keep this message in the message log
+  	#(out) A new ircMessage object
+	@staticmethod
+  	def newPrivateMessage(anIrcConnection, theMessageBody, aRecievingNick, offRecord = True):
+		spoofRawMessage = ':{0}! PRIVMSG {1} :{2}\r\n'.format(anIrcConnection.nick, aRecievingNick, theMessageBody)
+		spoofMessage = ircMessage().newMessageFromRawMessage(anIrcConnection, spoofRawMessage)
+		spoofMessage.isOffRecord = offRecord
+		return spoofMessage
+
+	#Creates a new ircMessage object to be sent out to the server
+  	#(in)anIrcConnection - The IRC connection that this message should be sent on
+  	#(in)theMessageBody - The body text for the new irc message
+  	#(in)offRecord - [optional] A flag for whether or not to keep this message in the message log
+  	#(out) A new ircMessage object
+	@staticmethod
+	def newServerMessage(anIrcConnection, theMessageBody, offRecord = True):
+		spoofMessage = ircMessage()
+		spoofMessage.ircConnection = anIrcConnection
+		spoofMessage.body = theMessageBody
+		spoofMessage.isServerMessage = True
+		spoofMessage.isOffRecord = offRecord
+		return spoofMessage	
+
+	#Sends the message out on the message's irc connection
+	def send(self):
+		self.ircConnection.sendMessage(self)
+
+	#Checks to see if a message in this room contains a single keyword
+	#(in) aKeyword - The keyword that you want to respond to
+	#(out) True or False depending on if you should respond to this keyword
+	def containsKeyword(self, aKeyword):
+		return self.containsKeywords([aKeyword])
+
+	#Checks to see if a message in this room contains some keywords
+	#(in) someKeywords - A list of keywords that you want to respond to
+	#(out) True or False depending on if you should respond to these keywords
+	def containsKeywords(self, someKeywords):
+		if self.body == None: return False
+
+		keywordsArePresent = True
+		for keyword in someKeywords:
+			if self.body.find(keyword) == -1: keywordsArePresent = False
+
+	  	return keywordsArePresent
