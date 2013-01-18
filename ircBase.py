@@ -6,7 +6,7 @@ from urlparse import urlparse
 globalNetwork = 'irc.freenode.net'
 globalPort = 6667
 globalRoom = '#phyll1s'
-globalNick = 'rafiMadsen'
+globalNick = 'rafiBot'
 
 #A class representing an IRC connection
 #Keeps a reference to the IRC socket we are communicating on

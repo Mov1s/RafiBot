@@ -56,3 +56,5 @@ def main(irc):
 	#Print 'Bewbs' if there has been no room activity for 30 min
 	elif irc.noRoomActivityForTime(1800):
 		ircMessage().newRoomMessage(irc, 'Bewbs').send()
+	elif message.containsKeyword('shiva'):
+		ircMessage().newRoomMessage(irc, 'SHIVAKAMINISOMAKANDAKRAAAAAAAM!').send()
