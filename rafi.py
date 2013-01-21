@@ -1,4 +1,4 @@
-import ircBase
+from ircBase import *
 import modules.baseModule as baseModule
 import modules.redditModule as redditModule
 import modules.twssModule as twssModule
@@ -6,19 +6,18 @@ import modules.weatherModule as weatherModule
 import modules.imageModule as imageModule
 import modules.ircCommandModule as ircCommandModule
 
-irc = ircBase.createIrcConnection()
+irc = ircConnection().newConnection()
 
 #Main Bot Loop ---------------------------------
 #-----------------------------------------------
 while True:
-   irc = ircBase.respondToServerMessages(irc)
+   irc.respondToServerMessages()
    
    #Command Modules
    baseModule.main(irc)
    redditModule.main(irc)
-   twssModule.main(irc)
+   # twssModule.main(irc)
    weatherModule.main(irc)
    imageModule.main(irc)
-   ircCommandModule.main(irc)   
-
-   print irc.lastMessage()
+   
+   print irc.lastMessage().rawMessage

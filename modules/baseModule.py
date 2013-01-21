@@ -3,27 +3,38 @@ from ircBase import *
 from random import randint
 import sys
 
-#irc has a few variables that are available: nick, room, network, port
-#So that is where those come from if you see them being used here
-
 def main(irc):
 	message = irc.lastMessage()
 
 	#Quit when told to
-	if messageIsBotCommand(message, 'quit'):
-		irc.sendMessage('Later fags')
-		irc.sendCommand('QUIT')
+	if message.botCommand == 'quit':
+		ircMessage().newRoomMessage(irc, 'Later fags').send()
+		ircMessage().newServerMessage(irc, 'QUIT').send()
 		sys.exit()
 	#Quit with update message
-	elif messageIsBotCommand(message, 'update'):
-		irc.sendMessage('Brb, updating')
-		irc.sendCommand('QUIT')
+	elif message.botCommand == 'update':
+		ircMessage().newRoomMessage(irc, 'Brb, updating').send()
+		ircMessage().newServerMessage(irc, 'QUIT').send()
 		sys.exit()
+	#Print the last 10 room messages
+	elif message.botCommand == 'history':
+		messageParts = message.body.split()
+		historyDepth = 10 if len(irc.messageLog) > 11 else len(irc.messageLog) - 1
+		if len(messageParts) >= 3:
+			try:
+				historyDepth = int(messageParts[2]) if int(messageParts[2]) < len(irc.messageLog) else len(irc.messageLog) - 1
+			except:
+				return
+		for i in range(0, historyDepth):
+			aMessage = irc.messageLog[len(irc.messageLog) - 1 - historyDepth + i]
+			if aMessage.body != None:
+				sendingMessageBody = '{0}: {1}'.format(aMessage.sendingNick, aMessage.body)
+				ircMessage().newRoomMessage(irc, sendingMessageBody, offRecord = True).send()
 	#Print Rafi's GitHub if someone mentions it
-	elif messageContainsKeywords(message, ['git', irc.nick]):
-		irc.sendMessage('My source is at https://github.com/Mov1s/RafiBot.git')
+	elif message.containsKeywords(['git', irc.nick]):
+		ircMessage().newRoomMessage(irc, 'My source is at https://github.com/Mov1s/RafiBot.git').send()
 	#Print random Rafi quotes whenever rafi is mentioned
-	elif messageContainsKeyword(message, irc.nick) and not messageIsBotCommand(message, ''):
+	elif message.containsKeyword(irc.nick) and not message.isBotCommand:
 		rafiQuotes = []
 		rafiQuotes.append("I'm literally gonna sodomize you. I'm gonna have non consensual sex with your face and butt and then I'm going for your wife and children... Just kidding.")
 		rafiQuotes.append("JUKEBOX! I'm gonna put $7 worth of Hoobastank in it!")
@@ -41,10 +52,9 @@ def main(irc):
 		rafiQuotes.append("Sometimes when I puke I shit.")
 
 		quoteIndex = randint(0, len(rafiQuotes) - 1)
-		irc.sendMessage(rafiQuotes[quoteIndex])
+		ircMessage().newRoomMessage(irc, rafiQuotes[quoteIndex]).send()
 	#Print 'Bewbs' if there has been no room activity for 30 min
-	elif noRoomActivityForTime(irc, 1800):
-		irc.sendMessage('Bewbs')
-	#Print Shiva blast 
-	elif messageContainsKeyword(message, 'shiva'):
-		irc.sendMessage('SHIVAKAMINISOMAKANDAKRAAAAAAAAM!')
+	elif irc.noRoomActivityForTime(1800):
+		ircMessage().newRoomMessage(irc, 'Bewbs').send()
+	elif message.containsKeyword('shiva'):
+		ircMessage().newRoomMessage(irc, 'SHIVAKAMINISOMAKANDAKRAAAAAAAM!').send()
