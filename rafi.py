@@ -5,6 +5,7 @@ import modules.twssModule as twssModule
 import modules.weatherModule as weatherModule
 import modules.imageModule as imageModule
 import modules.ircCommandModule as ircCommandModule
+import modules.smsModule as smsModule
 
 irc = ircConnection().newConnection()
 
@@ -19,5 +20,6 @@ while True:
    # twssModule.main(irc)
    weatherModule.main(irc)
    imageModule.main(irc)
-   
+   smsModule.main(irc)
+
    print irc.lastMessage().rawMessage
