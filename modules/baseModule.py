@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*- 
 from ircBase import *
 from random import randint
-import sys
+import os, sys, subprocess
 
 #Check if a message is requesting room history
 def getHistoryQuery(aMessage):
@@ -22,7 +22,12 @@ def main(irc):
 	elif message.botCommand == 'update':
 		ircMessage().newRoomMessage(irc, 'Brb, updating').send()
 		ircMessage().newServerMessage(irc, 'QUIT').send()
-		sys.exit()
+
+		#Call Rafi Git Update Script
+		subprocess.call(["./rafiUpdater", "development"])
+
+		#Restart Rafi
+		os.execl(sys.executable, *([sys.executable]+sys.argv))
 	#Print the last 10 room messages
 	elif historyRequest:
 		#Determine how many messages to show
