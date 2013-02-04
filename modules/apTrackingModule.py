@@ -2,9 +2,13 @@ from ircBase import *
 import MySQLdb as mdb
 import time
 import datetime
+import ConfigParser
 
-CONST_DB_USER = ''
-CONST_DB_PASSWORD = ''
+config = ConfigParser.SafeConfigParser()
+config.read('configs/apTrackingModule.conf')
+
+CONST_DB_USER = config.get('MySql', 'username')
+CONST_DB_PASSWORD = config.get('MySql', 'password')
 
 #------------------------------------------------------------------
 #Module Query Methods
