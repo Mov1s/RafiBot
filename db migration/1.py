@@ -1,4 +1,11 @@
 import MySQLdb as mdb
+import ConfigParser
+
+config = ConfigParser.SafeConfigParser()
+config.read('../configs/apTrackingModule.conf')
+
+CONST_DB_USER = config.get('MySql', 'username')
+CONST_DB_PASSWORD = config.get('MySql', 'password')
 
 #---------------------------------------------------------------
 #Create the database and tables for the AP Tracking Module
@@ -7,7 +14,7 @@ import MySQLdb as mdb
 #Create database
 def createDatabase():
 	try:
-		conn = mdb.connect('localhost', '', '')
+		conn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD)
 		cursor = conn.cursor()
 		cursor.execute('CREATE DATABASE IF NOT EXISTS moduleApTracker')
 		conn.close()
@@ -18,7 +25,7 @@ def createDatabase():
 #Create tables
 def createTables():
 	try:
-		conn = mdb.connect('localhost', '', '', 'moduleApTracker')
+		conn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'moduleApTracker')
 		cursor = conn.cursor()
 		cursor.execute('''
 			CREATE TABLE IF NOT EXISTS ApRecord
