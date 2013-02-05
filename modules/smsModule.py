@@ -11,7 +11,7 @@ CONST_MESSAGE = 3
 
 
 def getContactList():
-	configFile = open('smsConfig','r')
+	configFile = open('config/smsConfig','r')
 	contactList = configFile.readlines()
 	contactList = [x.replace('\n', '') for x in contactList]
 
@@ -45,7 +45,10 @@ def getQuery(contactList, message, messagePart):
 	expression = re.compile(stringMatch, re.IGNORECASE)
 	match = expression.match(message)
 	if match:
-		return match.group(messagePart).strip()
+		try:
+			return match.group(messagePart).strip()
+		except:
+			return None
 	else:
 		return None
 	
@@ -58,9 +61,10 @@ def main(irc):
 		text = getQuery(contactList,message.body,CONST_MESSAGE)
 		if text:
 			contact = getQuery(contactList,message.body,CONST_CONTACT)
-			if getContacts(contactList).find(contact) <> -1:
+			if contact:
 				try:
-					sendMail(contactList,contact,text)
+					print message.sendingNick
+					sendMail(contactList,contact,message.sendingNick + " says " + text)
 					ircMessage.newRoomMessage(irc, "Text message sent to " + contact).send()
 				except:
 					return
