@@ -56,7 +56,8 @@ def getQuery(contactList, message, messagePart):
 def main(irc):
  	message = irc.lastMessage()
 	contactList = getContactList()
-		
+	if message.botCommand == "contacts":
+		ircMessage.newRoomMessage(irc, "Contacts in system:" + getContacts(contactList).replace("|",",")).send()		
 	if message.body != None:
 		text = getQuery(contactList,message.body,CONST_MESSAGE)
 		if text:
