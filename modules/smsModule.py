@@ -11,7 +11,7 @@ CONST_MESSAGE = 3
 
 
 def getContactList():
-	configFile = open('config/smsConfig','r')
+	configFile = open('configs/smsConfig','r')
 	contactList = configFile.readlines()
 	contactList = [x.replace('\n', '') for x in contactList]
 
