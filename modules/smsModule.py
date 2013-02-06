@@ -10,6 +10,13 @@ CONST_CONTACT = 2
 CONST_MESSAGE = 3
 
 
+def getContactIndex (contactList, contact):
+	for i, s in enumerate(contactList):
+		if contact in s:
+			return i
+	return -1
+
+
 def getContactList():
 	configFile = open('configs/smsConfig','r')
 	contactList = configFile.readlines()
@@ -28,8 +35,8 @@ def getContacts(contactList):
 def sendMail(contactList, to, text):
 	fromAddr = contactList[0]
 	password = contactList[1]
-
-	toAddr = contactList[contactList.index(to) + 1]	
+	
+	toAddr = contactList[getContactIndex(contactList,to) + 1]	
 
 	mailServer = smtplib.SMTP('smtp.gmail.com:587')
 	mailServer.ehlo()
@@ -41,7 +48,7 @@ def sendMail(contactList, to, text):
 
 	
 def getQuery(contactList, message, messagePart):
-	stringMatch = "(text|txt)(" + getContacts(contactList) + ")? (.*)"
+	stringMatch = "(text|txt)(" + getContacts(contactList) + ") (.*)"
 	expression = re.compile(stringMatch, re.IGNORECASE)
 	match = expression.match(message)
 	if match:
@@ -61,6 +68,7 @@ def main(irc):
 	if message.body != None:
 		text = getQuery(contactList,message.body,CONST_MESSAGE)
 		if text:
+			print getQuery(contactList,message.body,CONST_CONTACT)
 			contact = getQuery(contactList,message.body,CONST_CONTACT)
 			if contact:
 				try:
