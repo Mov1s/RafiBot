@@ -21,34 +21,36 @@ def extract_body(payload):
 
 
 def readEmail (irc, contactList):
-	conn = imaplib.IMAP4_SSL("imap.gmail.com", 993)
-	conn.login(contactList[0],contactList[1])
-	conn.select()
-	typ, data = conn.search(None, 'UNSEEN')
 	try:
-		for num in data[0].split():
-			typ, msg_data = conn.fetch(num, '(RFC822)')
-			for response_part in msg_data:
-				if isinstance(response_part, tuple):
-					msg = email.message_from_string(response_part[1])
-					fromAddr = msg['from']
-					payload=msg.get_payload()
-					message=extract_body(payload)
-					if len(payload) == 2:
-						print("Hello, world!")
-						attachment = payload[1]
-						message = attachment.get_payload(decode=True)
-					contact = contactList[getContactIndex(contactList, fromAddr[:10]) -1].split("|")
-					if getContactIndex(contactList, fromAddr[:10]) <> -1:	
-						ircMessage.newRoomMessage(irc, "<" + contact[0] + "> " + message).send()
-			typ, response = conn.store(num, '+FLAGS', r'(\Seen)')
-	finally:
+		conn = imaplib.IMAP4_SSL("imap.gmail.com", 993)
+		conn.login(contactList[0],contactList[1])
+		conn.select()
+		typ, data = conn.search(None, 'UNSEEN')
 		try:
-			conn.close()
-		except:
-			pass
-		conn.logout()
-
+			for num in data[0].split():
+				typ, msg_data = conn.fetch(num, '(RFC822)')
+				for response_part in msg_data:
+					if isinstance(response_part, tuple):
+						msg = email.message_from_string(response_part[1])
+						fromAddr = msg['from']
+						payload=msg.get_payload()
+						message=extract_body(payload)
+						if len(payload) == 2:
+							print("Hello, world!")
+							attachment = payload[1]
+							message = attachment.get_payload(decode=True)
+						contact = contactList[getContactIndex(contactList, fromAddr[:10]) -1].split("|")
+						if getContactIndex(contactList, fromAddr[:10]) <> -1:	
+							ircMessage.newRoomMessage(irc, "<" + contact[0] + "> " + message).send()
+				typ, response = conn.store(num, '+FLAGS', r'(\Seen)')
+		finally:
+			try:
+				conn.close()
+			except:
+				pass
+			conn.logout()
+	except:
+		return
 
 
 def getContactIndex (contactList, contact):
