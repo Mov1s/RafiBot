@@ -6,6 +6,7 @@ import modules.weatherModule as weatherModule
 import modules.imageModule as imageModule
 import modules.ircCommandModule as ircCommandModule
 import modules.smsModule as smsModule
+import modules.apTrackingModule as apTrackingModule
 
 irc = ircConnection().newConnection()
 
@@ -21,5 +22,6 @@ while True:
    weatherModule.main(irc)
    imageModule.main(irc)
    smsModule.main(irc)
+   apTrackingModule.main(irc)
 
    print irc.lastMessage().rawMessage
