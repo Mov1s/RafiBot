@@ -2,6 +2,19 @@
 
 RafiBot was designed to be easily extendable so that we could make him do anything that Python can do.  Please add to the framework I've made for Rafi and create new modules for him.
 
+## Installation
+
+After cloning this repo you are almost ready to run Rafi!  First, make sure you have the correct software on your system.  If you are running Arch linux then you can run the installation script found at `installation/arch_install.sh` to install all the necessary packages needed to run Rafi.  If you plan on not using any of the modules included with Rafi and only want to write your own then all you need is python 2.7.x
+
+* Python 2.7.x
+* Python MySql module (needed for the apTrackingModule)
+* Python BeautifulSoup4 module (needed for several modules)
+* MySql (needed for the apTrackingModule)
+* Of course git :P
+
+After these are installed copy the configuration file templates found in `installation/configTemplates` to a folder named `configs` in Rafi's root folder.  These configuration files are templates and will need to be edited for your specific environment before Rafi will run properly.
+Now you are good to go!  Just run `python2 ./rafi.py` and watch him rage!
+
 ## For the future
 
 Rafi's current capabilities are pretty limited but I would like to continue to develop him.  In the future I would like to see a few things that will help make our community development of him easier.
