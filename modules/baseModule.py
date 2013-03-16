@@ -41,6 +41,36 @@ def createUser(aFirstName, aLastName, anEmail, aMobileNumber):
 
 	return aFirstName +  ' added!'
 
+#Create a new nick or alias for a user
+#(in)anEmail - The email address of the user to add the nick or alias for
+#(in)aNick - The nick or alias you would like associate with a user
+#(out) The message to send to the irc room
+def addNickForEmail(anEmail, aNick):
+	conn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'rafiBot')
+	cursor = conn.cursor()
+
+	#Don't allow overlap of nicks
+	cursor.execute("SELECT id FROM Nicks n WHERE n.nick = %s", (aNick))
+	if cursor.rowcount != 0:
+		return 'This nick is already in use'
+	
+	#Get the user to link the nick to
+	userId = userFirstName  = ''
+	cursor.execute("SELECT id, firstName FROM Users u WHERE u.email = %s", (anEmail))
+	if cursor.rowcount == 0:
+		return 'There is no user with this email address'
+	else:
+		result = cursor.fetchall()
+		userId = result[0][0]
+		userFirstName = result[0][1]
+
+	#Add the nick
+	creationTime = time.strftime('%Y-%m-%d %H:%M:%S')
+	cursor.execute('INSERT INTO Nicks (nick, userId, creationDate) VALUES (%s, %s, %s)', (aNick, userId, creationTime))
+	conn.commit()
+
+	return aNick +  ' linked to ' + userFirstName + "!"
+
 #Main module loop
 def main(irc):
 	message = irc.lastMessage()
@@ -122,6 +152,20 @@ def main(irc):
 		else:
 			args = message.botCommandArguments
 			response = createUser(args[0], args[1], args[2], args[3])
+	
+		#Send out the response the same way it was recieved	
+		if message.isPrivateMessage:
+			ircMessage().newPrivateMessage(irc, response, message.sendingNick, offRecord = True).send()
+		else:
+			ircMessage().newRoomMessage(irc, response).send()
+	#Add a new alias or nick for a user
+	elif message.botCommand == 'addnick':
+		response = ''
+		if len(message.botCommandArguments) < 2:
+			response = 'syntax is "addnick <Email> <Nick>"'
+		else:
+			args = message.botCommandArguments
+			response = addNickForEmail(args[0], args[1])
 	
 		#Send out the response the same way it was recieved	
 		if message.isPrivateMessage:

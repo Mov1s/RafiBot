@@ -2,7 +2,7 @@ import MySQLdb as mdb
 import ConfigParser
 
 config = ConfigParser.SafeConfigParser()
-config.read('../configs/apTrackingModule.conf')
+config.read('../configs/ircBase.conf')
 
 CONST_DB_USER = config.get('MySql', 'username')
 CONST_DB_PASSWORD = config.get('MySql', 'password')
@@ -35,6 +35,15 @@ def createTables():
 				lastName			VARCHAR(1000) NOT NULL,
 				email				VARCHAR(1000) NOT NULL,
 				mobileNumber		VARCHAR(1000) NOT NULL,
+				creationDate		DATETIME NOT NULL,
+				PRIMARY KEY 		(id)
+			)''')
+		cursor.execute('''
+			CREATE TABLE IF NOT EXISTS Nicks
+			(
+				id					INT NOT NULL AUTO_INCREMENT,
+				userId				INT NOT NULL,
+				nick				VARCHAR(1000) NOT NULL,
 				creationDate		DATETIME NOT NULL,
 				PRIMARY KEY 		(id)
 			)''')

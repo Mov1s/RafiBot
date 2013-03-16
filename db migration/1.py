@@ -2,7 +2,7 @@ import MySQLdb as mdb
 import ConfigParser
 
 config = ConfigParser.SafeConfigParser()
-config.read('../configs/apTrackingModule.conf')
+config.read('../configs/ircBase.conf')
 
 CONST_DB_USER = config.get('MySql', 'username')
 CONST_DB_PASSWORD = config.get('MySql', 'password')
