@@ -1,14 +1,47 @@
 # -*- coding: utf8 -*- 
 from ircBase import *
 from random import randint
-import os, sys, subprocess
+import MySQLdb as mdb
+import ConfigParser
+import os, sys, subprocess, time
+
+config = ConfigParser.SafeConfigParser()
+config.read('configs/ircBase.conf')
+
+CONST_DB_USER = config.get('MySql', 'username')
+CONST_DB_PASSWORD = config.get('MySql', 'password')
 
 #Check if a message is requesting room history
+#(in)aMessage - The message to check for the history query
+#(out) The groups of the RegEx that matched
 def getHistoryQuery(aMessage):
 	expression = re.compile('(history|hist) (me|ma)(.*)', re.IGNORECASE)
 	match = expression.match(aMessage.body)
 	return match
 
+#Create a new user in the database
+#(in)aFirstName - The first name of the user to create
+#(in)aLastName - The last name of the user to create
+#(in)anEmail - The email address of the user to create
+#(in)aMobileNumber - The mobile number of the user to create
+#(out) The message to send to the irc room
+def createUser(aFirstName, aLastName, anEmail, aMobileNumber):
+	conn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'rafiBot')
+	cursor = conn.cursor()
+
+	#Don't allow overlap of email address or phone number
+	cursor.execute("SELECT id FROM Users u WHERE u.email = %s OR u.mobileNumber = %s", (anEmail, aMobileNumber))
+	if cursor.rowcount != 0:
+		return 'This mobile number or email is already in use'
+
+	#Add the user
+	creationTime = time.strftime('%Y-%m-%d %H:%M:%S')
+	cursor.execute('INSERT INTO Users (firstName, lastName, email, mobileNumber, creationDate) VALUES (%s, %s, %s, %s, %s)', (aFirstName, aLastName, anEmail, aMobileNumber, creationTime))
+	conn.commit()
+
+	return aFirstName +  ' added!'
+
+#Main module loop
 def main(irc):
 	message = irc.lastMessage()
 	historyRequest = getHistoryQuery(message) if message.body != None else None
@@ -78,5 +111,20 @@ def main(irc):
 	#Print 'Bewbs' if there has been no room activity for 30 min
 	elif irc.noRoomActivityForTime(1800):
 		ircMessage().newRoomMessage(irc, 'Bewbs').send()
+	#Print the shiva blast if someone says shiva
 	elif message.containsKeyword('shiva'):
 		ircMessage().newRoomMessage(irc, 'SHIVAKAMINISOMAKANDAKRAAAAAAAM!').send()
+	#Register a new user
+	elif message.botCommand == 'adduser':
+		response = ''
+		if len(message.botCommandArguments) < 4:
+			response = 'syntax is "adduser <FirstName> <LastName> <Email> <MobileNumber>"'
+		else:
+			args = message.botCommandArguments
+			response = createUser(args[0], args[1], args[2], args[3])
+	
+		#Send out the response the same way it was recieved	
+		if message.isPrivateMessage:
+			ircMessage().newPrivateMessage(irc, response, message.sendingNick, offRecord = True).send()
+		else:
+			ircMessage().newRoomMessage(irc, response).send()

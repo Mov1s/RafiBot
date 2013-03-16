@@ -107,6 +107,7 @@ class ircMessage():
 		self.recievingRoom = None
 		self.privateMessageRecipient = None
 		self.links = []
+		self.botCommandArguments = []
 
 		#Usefull flags
 		self.hasLinks = False
@@ -157,6 +158,7 @@ class ircMessage():
   			match = bcExpression.search(newMessage.rawMessage)
   			if match:
   				newMessage.botCommand = match.group(1).split()[0].strip()
+				newMessage.botCommandArguments = match.group(1).split()[1:]
   				newMessage.isBotCommand = True
 
   		#Get ping
