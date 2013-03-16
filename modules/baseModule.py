@@ -3,7 +3,7 @@ from ircBase import *
 from random import randint
 import MySQLdb as mdb
 import ConfigParser
-import os, sys, subprocess, time
+import os, sys, subprocess, time, datetime
 
 config = ConfigParser.SafeConfigParser()
 config.read('configs/ircBase.conf')
@@ -70,6 +70,28 @@ def addNickForEmail(anEmail, aNick):
 	conn.commit()
 
 	return aNick +  ' linked to ' + userFirstName + "!"
+
+#List the contact info for a nick or name
+#(in)theSearchString - The text to search for as the user name or nick
+#(out) The message to send to the irc room
+def informationForUser(theSearchString):
+	conn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'rafiBot')
+	cursor = conn.cursor()
+
+	#Get the user
+	cursor.execute("SELECT n.nick, u.firstName, u.lastName, u.email, u.mobileNumber, unix_timestamp(u.creationDate)  FROM Nicks n LEFT JOIN Users u ON u.id = n.userId WHERE n.nick = %s or u.firstName = %s or u.lastName = %s", (theSearchString, theSearchString, theSearchString))
+	if cursor.rowcount == 0:
+		return 'No user was found for this string'
+	else:
+		result = cursor.fetchall()
+		now = time.time()
+		userNick = result[0][0]
+		userFirstName = result[0][1]
+		userLastName = result[0][2]
+		userEmail = result[0][3]
+		userNumber = result[0][4]
+		userSince = now - result[0][5]
+		return userFirstName + " " + userLastName + ", user for " + str(datetime.timedelta(seconds = int(userSince))) + ", " + userEmail + " " + userNumber
 
 #Main module loop
 def main(irc):
@@ -166,6 +188,20 @@ def main(irc):
 		else:
 			args = message.botCommandArguments
 			response = addNickForEmail(args[0], args[1])
+	
+		#Send out the response the same way it was recieved	
+		if message.isPrivateMessage:
+			ircMessage().newPrivateMessage(irc, response, message.sendingNick, offRecord = True).send()
+		else:
+			ircMessage().newRoomMessage(irc, response).send()
+	#Return user details for a search string
+	elif message.botCommand == 'userinfo':
+		response = ''
+		if len(message.botCommandArguments) < 1:
+			response = 'syntax is "userinfo <SearchString>"'
+		else:
+			args = message.botCommandArguments
+			response = informationForUser(args[0])
 	
 		#Send out the response the same way it was recieved	
 		if message.isPrivateMessage:
