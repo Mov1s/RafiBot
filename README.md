@@ -45,7 +45,7 @@ After your module is finished add it to Rafi's main loop in the block with the o
 The ircMessage class provides a number of simple cases that represent IRC activity that your module can respond to.  Feel free to add more.  Examples of all of the cases are in the baseModule module.
 The ircConnection class has the method `noRoomActivityForTime(timeInSeconds)` that can also be used to do something if the room has been idle for a certain period of time.
 
-`message.isBotCommand`  This case is true if the IRC activity that the module is responding to is a command sent to Rafi.  Commands are in the format `!RafiBot <command>`.  The bot command that this message contains can be accessed with `message.botCommand` and used to determine the course of action to take.
+`message.isBotCommand`  This case is true if the IRC activity that the module is responding to is a command sent to Rafi.  Commands are in the format `!RafiBot <command>`.  The bot command that this message contains can be accessed with `message.botCommand` and used to determine the course of action to take.  If there are additional arguments to the command following the bot command they can be found in `message.botCommandArguments`.
 
 `message.containsKeyword(aKeyword)` This case is true if the IRC activity that the module is responding to is a message containing a keyword.  This message doesn't need to be directed at Rafi and will also respond if the keyword is part of another word.  So if you make Rafi respond to the letter "a" any word with "a" in it will trigger this case.
 
