@@ -18,12 +18,6 @@ def addUserIdColumn():
 	try:
 		conn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'moduleApTracker')
 		cursor = conn.cursor()
-
-		#Check if the column is already there
-		cursor.execute('SELECT userId FROM ApRecord LIMIT 1')
-		if cursor.rowcount != 0:
-			return True
-
 		cursor.execute('ALTER TABLE ApRecord ADD userId INT NOT NULL')
 		conn.close()
 	except:
@@ -74,19 +68,17 @@ def removeNickColumn():
 def run():
 	col = addUserIdColumn()
 	migrate = migrateNickToUserId()
-	if col and migrate:
+	if not col:
+		print 'Error creating userId column in table'	
+	if migrate:
 		drop = removeNickColumn()
 		if drop:
 			print 'Successfully migrated database'
 			return True
 		else:
 			print 'Error droping nicks column in table'
-	elif not col:
-		print 'Error creating userId column in table'
 	elif not migrate:
 		print 'Error migrating nicks to userId'
-	else:
-		print 'Error migrating database'
 	return False
 
 run()
