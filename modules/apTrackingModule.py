@@ -5,7 +5,7 @@ import datetime
 import ConfigParser
 
 config = ConfigParser.SafeConfigParser()
-config.read('configs/apTrackingModule.conf')
+config.read('configs/ircBase.conf')
 
 CONST_DB_USER = config.get('MySql', 'username')
 CONST_DB_PASSWORD = config.get('MySql', 'password')
@@ -46,18 +46,26 @@ def apStatsQuery(aMessageBody):
 #(in)aMessageNick - The nick to start tracking for
 #(out) The message to print to the room
 def startTrackingApForNick(aMessageNick):
-	conn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'moduleApTracker')
-	cursor = conn.cursor()
+	apConn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'moduleApTracker')
+	userConn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'rafiBot')
+	apCursor = apConn.cursor()
+	userCursor = userConn.cursor()
+
+	#Get the UserId for this nick
+	userCursor.execute("SELECT userId FROM Nicks WHERE nick = %s", (aMessageNick))
+	if userCursor.rowcount == 0:
+		return 'This nick is not linked to a registered user'
+	userId = userCursor.fetchall()[0][0]
 
 	#Don't allow the user to start another AP if they still have one open
-	cursor.execute("SELECT * FROM ApRecord ar WHERE ar.nick = %s and ar.endTime IS NULL", (aMessageNick))
-	if cursor.rowcount != 0:
+	apCursor.execute("SELECT id FROM ApRecord ar WHERE ar.userId = %s and ar.endTime IS NULL", (userId))
+	if apCursor.rowcount != 0:
 		return 'You are already drinking an AP'
 
 	#Start a new AP record
 	startTime = time.strftime('%Y-%m-%d %H:%M:%S')
-	cursor.execute("INSERT INTO ApRecord (nick, startTime) VALUES (%s, %s)", (aMessageNick, startTime))
-	conn.commit()
+	apCursor.execute("INSERT INTO ApRecord (userId, startTime) VALUES (%s, %s)", (userId, startTime))
+	apConn.commit()
 
 	return 'Bottoms up!'
 
@@ -65,13 +73,21 @@ def startTrackingApForNick(aMessageNick):
 #(in)aMessageNick - The nick to stop tracking for
 #(out) The message to print to the room
 def stopTrackingApForNick(aMessageNick):
-	conn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'moduleApTracker')
-	cursor = conn.cursor()
+	apConn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'moduleApTracker')
+	userConn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'rafiBot')
+	apCursor = apConn.cursor()
+	userCursor = userConn.cursor()
+
+	#Get the UserId for this nick
+	userCursor.execute("SELECT userId FROM Nicks WHERE nick = %s", (aMessageNick))
+	if userCursor.rowcount == 0:
+		return 'This nick is not linked to a registered user'
+	userId = userCursor.fetchall()[0][0]
 
 	#Don't allow the user to stop AP if they don't have one started
-	cursor.execute("SELECT id, unix_timestamp(startTime) FROM ApRecord ar WHERE ar.nick = %s and ar.endTime IS NULL", (aMessageNick))
-	if cursor.rowcount != 0:
-		result = cursor.fetchall()
+	apCursor.execute("SELECT id, unix_timestamp(startTime) FROM ApRecord ar WHERE ar.userId = %s and ar.endTime IS NULL", (userId))
+	if apCursor.rowcount != 0:
+		result = apCursor.fetchall()
 		startTime = result[0][1]
 
 		#Calculate the AP duration
@@ -81,8 +97,8 @@ def stopTrackingApForNick(aMessageNick):
 
 		#Close AP record
 		recordId = result[0][0]
-		cursor.execute("UPDATE ApRecord SET endTime = %s, duration = %s WHERE id = %s", (endTime, duration, recordId))
-		conn.commit()
+		apCursor.execute("UPDATE ApRecord SET endTime = %s, duration = %s WHERE id = %s", (endTime, duration, recordId))
+		apConn.commit()
 
 		return 'That AP took you ' + str(datetime.timedelta(seconds = duration))
 	else:
@@ -92,13 +108,21 @@ def stopTrackingApForNick(aMessageNick):
 #(in)aMessageNick - The nick to report stats for
 #(out) The message to print to the room
 def getApStatsForNick(aMessageNick):
-	conn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'moduleApTracker')
-	cursor = conn.cursor()
+	apConn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'moduleApTracker')
+	userConn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'rafiBot')
+	apCursor = apConn.cursor()
+	userCursor = userConn.cursor()
+
+	#Get the UserId for this nick
+	userCursor.execute("SELECT userId FROM Nicks WHERE nick = %s", (aMessageNick))
+	if userCursor.rowcount == 0:
+		return 'This nick is not linked to a registered user'
+	userId = userCursor.fetchall()[0][0]
 
 	statMessage = ''
 	#Get the total time of all complete APs and the count of how many have been drank
-	cursor.execute("SELECT COUNT(id), SUM(duration) FROM ApRecord ar WHERE ar.nick = %s and ar.endTime IS NOT NULL", (aMessageNick))
-	result = cursor.fetchall()
+	apCursor.execute("SELECT COUNT(id), SUM(duration) FROM ApRecord ar WHERE ar.userId = %s and ar.endTime IS NOT NULL", (userId))
+	result = apCursor.fetchall()
 	totalAps = result[0][0]
 	if totalAps != 0:
 		totalDuration = result[0][1]
@@ -107,9 +131,9 @@ def getApStatsForNick(aMessageNick):
 		statMessage = 'You have drank ' + str(totalAps) + ' AP(s) for a total time of ' + formatedDuration + '.  '
 
 	#Check to see if there are any open APs and report stats on those
-	cursor.execute("SELECT unix_timestamp(startTime) FROM ApRecord ar WHERE ar.nick = %s and ar.endTime IS NULL", (aMessageNick))
-	if cursor.rowcount != 0:
-		result = cursor.fetchall()
+	apCursor.execute("SELECT unix_timestamp(startTime) FROM ApRecord ar WHERE ar.userId = %s and ar.endTime IS NULL", (userId))
+	if apCursor.rowcount != 0:
+		result = apCursor.fetchall()
 		startTime = result[0][0]
 		duration = time.time() - startTime
 

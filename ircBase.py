@@ -1,12 +1,16 @@
 import socket
 import time
 import re
+import ConfigParser
 from urlparse import urlparse
 
-globalNetwork = 'irc.freenode.net'
-globalPort = 6667
-globalRoom = '#phyll1s'
-globalNick = 'rafiBot'
+config = ConfigParser.SafeConfigParser()
+config.read('configs/ircBase.conf')
+
+CONST_NETWORK = config.get('Connection', 'server')
+CONST_PORT = int(config.get('Connection', 'port'))
+CONST_ROOM = config.get('Connection', 'room')
+CONST_NICK = config.get('Connection', 'nick')
 
 #A class representing an IRC connection
 #Keeps a reference to the IRC socket we are communicating on
@@ -27,7 +31,7 @@ class ircConnection():
 	#Creates an IRC connection using the constants at the top of the file
 	#(out) The newly created IRC connection
 	@staticmethod
-	def newConnection(aNetwork = globalNetwork, aPort = globalPort, aRoom = globalRoom, aNick = globalNick):
+	def newConnection(aNetwork = CONST_NETWORK, aPort = CONST_PORT, aRoom = CONST_ROOM, aNick = CONST_NICK):
 		newConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		newConnection.connect((aNetwork, aPort))
 		print newConnection.recv(4096)
@@ -103,6 +107,7 @@ class ircMessage():
 		self.recievingRoom = None
 		self.privateMessageRecipient = None
 		self.links = []
+		self.botCommandArguments = []
 
 		#Usefull flags
 		self.hasLinks = False
@@ -153,6 +158,7 @@ class ircMessage():
   			match = bcExpression.search(newMessage.rawMessage)
   			if match:
   				newMessage.botCommand = match.group(1).split()[0].strip()
+				newMessage.botCommandArguments = match.group(1).split()[1:]
   				newMessage.isBotCommand = True
 
   		#Get ping

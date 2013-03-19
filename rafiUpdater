@@ -1,0 +1,6 @@
+#! /bin/bash
+echo "Updating Rafi from $1"
+git checkout $1
+git pull
+echo 'Done updating Rafi'
+echo 'Launching Rafi'

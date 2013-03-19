@@ -8,7 +8,7 @@ CONST_DB_USER = config.get('MySql', 'username')
 CONST_DB_PASSWORD = config.get('MySql', 'password')
 
 #---------------------------------------------------------------
-#Create the database and tables for the AP Tracking Module
+#Create the database and tables for global user tracking
 #---------------------------------------------------------------
 
 #Create database
@@ -16,7 +16,7 @@ def createDatabase():
 	try:
 		conn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD)
 		cursor = conn.cursor()
-		cursor.execute('CREATE DATABASE IF NOT EXISTS moduleApTracker')
+		cursor.execute('CREATE DATABASE IF NOT EXISTS rafiBot')
 		conn.close()
 	except:
 		return False
@@ -25,16 +25,26 @@ def createDatabase():
 #Create tables
 def createTables():
 	try:
-		conn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'moduleApTracker')
+		conn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'rafiBot')
 		cursor = conn.cursor()
 		cursor.execute('''
-			CREATE TABLE IF NOT EXISTS ApRecord
+			CREATE TABLE IF NOT EXISTS Users
 			(
 				id					INT NOT NULL AUTO_INCREMENT,
+				firstName			VARCHAR(1000) NOT NULL,
+				lastName			VARCHAR(1000) NOT NULL,
+				email				VARCHAR(1000) NOT NULL,
+				mobileNumber		VARCHAR(1000) NOT NULL,
+				creationDate		DATETIME NOT NULL,
+				PRIMARY KEY 		(id)
+			)''')
+		cursor.execute('''
+			CREATE TABLE IF NOT EXISTS Nicks
+			(
+				id					INT NOT NULL AUTO_INCREMENT,
+				userId				INT NOT NULL,
 				nick				VARCHAR(1000) NOT NULL,
-				startTime			DATETIME NOT NULL,
-				endTime				DATETIME,
-				duration			INT,
+				creationDate		DATETIME NOT NULL,
 				PRIMARY KEY 		(id)
 			)''')
 		conn.close()
