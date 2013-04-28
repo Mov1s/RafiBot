@@ -51,7 +51,7 @@ class ircConnection():
 	#Recieves message from the server, responds if it is a ping request, otherwise log the message
 	def respondToServerMessages(self):
 		message = self.connection.recv(4096)
-		message = ircMessage().newMessageFromRawMessage(self, message)
+		message = ircMessage().newMessageFromRawMessage(message)
 		if message.isPing:
 			self.sendPongForPing(message)
 		self.addMessageToLog(message)
@@ -87,6 +87,12 @@ class ircConnection():
 
 		if not aMessage.isOffRecord: self.addMessageToLog(aMessage)
 
+	#Sends an array of messages to the IRC server
+	#(in)someMessages - The array of messages to be sent
+	def sendMessages(self, someMessages):
+		for message in someMessages:
+			self.sendMessage(message)
+
 	#Checks to see if there has been any activity in a given period of time
 	#(in)timeInSeconds - The time frame to monitor for activity
 	#(out) True or False depending on if there has been any activity in the given time frame
@@ -97,8 +103,6 @@ class ircConnection():
 class ircMessage():
 	#Initializes all the properties
 	def __init__(self):
-		self.ircConnection = None
-
 		#Message properties
 		self.rawMessage = None
 		self.body = None
@@ -119,13 +123,11 @@ class ircMessage():
 		self.isOffRecord = False
 
 	#Creates a new ircMessage object from a raw irc message string
-	#(in)anIrcConnection - The IRC connection that this message was recieved on
 	#(in)aRawMessage - The message string as it comes from the server
 	#(out) A shiny new ircMessage object
 	@staticmethod
-	def newMessageFromRawMessage(anIrcConnection, aRawMessage):
+	def newMessageFromRawMessage(aRawMessage):
 		newMessage = ircMessage()
-		newMessage.ircConnection = anIrcConnection
 		newMessage.rawMessage = aRawMessage
 
 		#Get sending nick
@@ -154,7 +156,7 @@ class ircMessage():
 
   		#Get bot command
   		if not newMessage.isServerMessage:
-  			bcExpression = re.compile(':!' + anIrcConnection.nick + ' (.*)', re.IGNORECASE)
+  			bcExpression = re.compile(':!' + CONST_NICK + ' (.*)', re.IGNORECASE)
   			match = bcExpression.search(newMessage.rawMessage)
   			if match:
   				newMessage.botCommand = match.group(1).split()[0].strip()
@@ -180,49 +182,41 @@ class ircMessage():
   		return newMessage
 
   	#Creates a new ircMessage object to be sent out to a room
-  	#(in)anIrcConnection - The IRC connection that this message should be sent on
   	#(in)theMessageBody - The body text for the new irc message
   	#(in)aRoom - [optional] The room to send the message to if it is different than the default room of the irc connection
   	#(in)offRecord - [optional] A flag for whether or not to keep this message in the message log
   	#(out) A new ircMessage object
   	@staticmethod
-  	def newRoomMessage(anIrcConnection, theMessageBody, aRoom = None, offRecord = False):
-		if aRoom == None: aRoom = anIrcConnection.room
-		spoofRawMessage = ':{0}! PRIVMSG {1} :{2}\r\n'.format(anIrcConnection.nick, aRoom, theMessageBody)
-		spoofMessage = ircMessage().newMessageFromRawMessage(anIrcConnection, spoofRawMessage)
+  	def newRoomMessage(theMessageBody, aRoom = None, offRecord = False):
+		if aRoom == None: aRoom = CONST_ROOM
+		spoofRawMessage = ':{0}! PRIVMSG {1} :{2}\r\n'.format(CONST_NICK, aRoom, theMessageBody)
+		spoofMessage = ircMessage().newMessageFromRawMessage(spoofRawMessage)
 		spoofMessage.isOffRecord = offRecord
 		return spoofMessage
 
 	#Creates a new ircMessage object to be sent out to a nick
-  	#(in)anIrcConnection - The IRC connection that this message should be sent on
   	#(in)theMessageBody - The body text for the new irc message
   	#(in)aRecievingNick - The nick to send the message to
   	#(in)offRecord - [optional] A flag for whether or not to keep this message in the message log
   	#(out) A new ircMessage object
 	@staticmethod
-  	def newPrivateMessage(anIrcConnection, theMessageBody, aRecievingNick, offRecord = True):
-		spoofRawMessage = ':{0}! PRIVMSG {1} :{2}\r\n'.format(anIrcConnection.nick, aRecievingNick, theMessageBody)
-		spoofMessage = ircMessage().newMessageFromRawMessage(anIrcConnection, spoofRawMessage)
+  	def newPrivateMessage(theMessageBody, aRecievingNick, offRecord = True):
+		spoofRawMessage = ':{0}! PRIVMSG {1} :{2}\r\n'.format(CONST_NICK, aRecievingNick, theMessageBody)
+		spoofMessage = ircMessage().newMessageFromRawMessage(spoofRawMessage)
 		spoofMessage.isOffRecord = offRecord
 		return spoofMessage
 
 	#Creates a new ircMessage object to be sent out to the server
-  	#(in)anIrcConnection - The IRC connection that this message should be sent on
   	#(in)theMessageBody - The body text for the new irc message
   	#(in)offRecord - [optional] A flag for whether or not to keep this message in the message log
   	#(out) A new ircMessage object
 	@staticmethod
-	def newServerMessage(anIrcConnection, theMessageBody, offRecord = True):
+	def newServerMessage(theMessageBody, offRecord = True):
 		spoofMessage = ircMessage()
-		spoofMessage.ircConnection = anIrcConnection
 		spoofMessage.body = theMessageBody
 		spoofMessage.isServerMessage = True
 		spoofMessage.isOffRecord = offRecord
 		return spoofMessage	
-
-	#Sends the message out on the message's irc connection
-	def send(self):
-		self.ircConnection.sendMessage(self)
 
 	#Checks to see if a message in this room contains a single keyword
 	#(in) aKeyword - The keyword that you want to respond to

@@ -31,11 +31,13 @@ def getQuery(message):
 
 def main(irc):
   message = irc.lastMessage()
+  messages = []
   if message.body != None:
     query = getQuery(message.body)
     if query:
       result = imageMe(query)
       if result:
-        ircMessage().newRoomMessage(irc, result).send()
+        messages.append(ircMessage().newRoomMessage(result))
       else:
-        ircMessage().newRoomMessage(irc, 'Nothing found for ' + query).send()
+        messages.append(ircMessage().newRoomMessage('Nothing found for ' + query))
+  irc.sendMessages(messages)
