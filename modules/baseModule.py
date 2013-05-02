@@ -101,15 +101,15 @@ def main(irc):
 
 	#Quit when told to
 	if message.botCommand == 'quit':
-		messages.append(ircMessage().newRoomMessage('Later fags'))
-		messages.append(ircMessage().newServerMessage('QUIT'))
+		messages.append(IrcMessage.newRoomMessage('Later fags'))
+		messages.append(IrcMessage.newServerMessage('QUIT'))
 		irc.sendMessages(messages)
 
 		sys.exit()
 	#Quit with update message
 	elif message.botCommand == 'update':
-		messages.append(ircMessage().newRoomMessage('Brb, updating'))
-		messages.append(ircMessage().newServerMessage('QUIT'))
+		messages.append(IrcMessage.newRoomMessage('Brb, updating'))
+		messages.append(IrcMessage.newServerMessage('QUIT'))
 		irc.sendMessages(messages)
 
 		#Call Rafi Git Update Script
@@ -140,10 +140,10 @@ def main(irc):
 		#PM the requested message history
 		for historyMessage in reversed(historyMessages):
 			sendingMessageBody = '{0}: {1}'.format(historyMessage.sendingNick, historyMessage.body)
-			messages.append(ircMessage().newPrivateMessage(sendingMessageBody, message.sendingNick, offRecord = True))
+			messages.append(IrcMessage.newPrivateMessage(sendingMessageBody, message.sendingNick, offRecord = True))
 	#Print Rafi's GitHub if someone mentions it
 	elif message.containsKeywords(['git', irc.nick]):
-		messages.append(ircMessage().newRoomMessage('My source is at https://github.com/Mov1s/RafiBot.git'))
+		messages.append(IrcMessage.newRoomMessage('My source is at https://github.com/Mov1s/RafiBot.git'))
 	#Print random Rafi quotes whenever rafi is mentioned
 	elif message.containsKeyword(irc.nick) and not message.isBotCommand:
 		rafiQuotes = []
@@ -163,13 +163,13 @@ def main(irc):
 		rafiQuotes.append("Sometimes when I puke I shit.")
 
 		quoteIndex = randint(0, len(rafiQuotes) - 1)
-		messages.append(ircMessage().newRoomMessage(rafiQuotes[quoteIndex]))
+		messages.append(IrcMessage.newRoomMessage(rafiQuotes[quoteIndex]))
 	#Print 'Bewbs' if there has been no room activity for 30 min
 	elif irc.noRoomActivityForTime(1800):
-		messages.append(ircMessage().newRoomMessage('Bewbs'))
+		messages.append(IrcMessage.newRoomMessage('Bewbs'))
 	#Print the shiva blast if someone says shiva
 	elif message.containsKeyword('shiva'):
-		messages.append(ircMessage().newRoomMessage('SHIVAKAMINISOMAKANDAKRAAAAAAAM!'))
+		messages.append(IrcMessage.newRoomMessage('SHIVAKAMINISOMAKANDAKRAAAAAAAM!'))
 	#Register a new user
 	elif message.botCommand == 'adduser':
 		response = ''
@@ -181,9 +181,9 @@ def main(irc):
 	
 		#Send out the response the same way it was recieved	
 		if message.isPrivateMessage:
-			messages.append(ircMessage().newPrivateMessage(response, message.sendingNick, offRecord = True))
+			messages.append(IrcMessage.newPrivateMessage(response, message.sendingNick, offRecord = True))
 		else:
-			messages.append(ircMessage().newRoomMessage(response))
+			messages.append(IrcMessage.newRoomMessage(response))
 	#Add a new alias or nick for a user
 	elif message.botCommand == 'addnick':
 		response = ''
@@ -195,9 +195,9 @@ def main(irc):
 	
 		#Send out the response the same way it was recieved	
 		if message.isPrivateMessage:
-			messages.append(ircMessage().newPrivateMessage(response, message.sendingNick, offRecord = True))
+			messages.append(IrcMessage.newPrivateMessage(response, message.sendingNick, offRecord = True))
 		else:
-			messages.append(ircMessage().newRoomMessage(response))
+			messages.append(IrcMessage.newRoomMessage(response))
 	#Return user details for a search string
 	elif message.botCommand == 'userinfo':
 		response = ''
@@ -209,8 +209,8 @@ def main(irc):
 	
 		#Send out the response the same way it was recieved	
 		if message.isPrivateMessage:
-			messages.append(ircMessage().newPrivateMessage(response, message.sendingNick, offRecord = True))
+			messages.append(IrcMessage.newPrivateMessage(response, message.sendingNick, offRecord = True))
 		else:
-			messages.append(ircMessage().newRoomMessage(response))
+			messages.append(IrcMessage.newRoomMessage(response))
 
 	irc.sendMessages(messages)

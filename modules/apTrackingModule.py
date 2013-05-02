@@ -156,14 +156,14 @@ def main(irc):
 	#Start tracking an AP
 	if apStartQuery(message.body):
 		returnMessage = startTrackingApForNick(message.sendingNick)
-		messages.append(ircMessage().newRoomMessage(returnMessage))
+		messages.append(IrcMessage.newRoomMessage(returnMessage))
 	#Stop tracking an AP
 	elif apStopQuery(message.body):
 		returnMessage = stopTrackingApForNick(message.sendingNick)
-		messages.append(ircMessage().newRoomMessage(returnMessage))
+		messages.append(IrcMessage.newRoomMessage(returnMessage))
 	#Print the stats for AP
 	elif apStatsQuery(message.body):
 		returnMessage = getApStatsForNick(message.sendingNick)
-		messages.append(ircMessage().newRoomMessage(returnMessage))
+		messages.append(IrcMessage.newRoomMessage(returnMessage))
 
 	irc.sendMessages(messages)

@@ -15,7 +15,7 @@ CONST_NICK = config.get('Connection', 'nick')
 #A class representing an IRC connection
 #Keeps a reference to the IRC socket we are communicating on
 #Keeps a reference of the last 20 messages sent over a chanel
-class ircConnection():
+class IrcConnection():
 
 	#Intializes all the properties
 	def __init__(self):
@@ -39,7 +39,7 @@ class ircConnection():
 		newConnection.send('USER ' + aNick + ' ' + aNick + ' ' + aNick + ' :Python IRC\r\n')
 		newConnection.send('JOIN ' + aRoom + '\r\n')
 
-		aConnection = ircConnection()
+		aConnection = IrcConnection()
 		aConnection.connection = newConnection
 		aConnection.network = aNetwork
 		aConnection.port = aPort
@@ -51,7 +51,7 @@ class ircConnection():
 	#Recieves message from the server, responds if it is a ping request, otherwise log the message
 	def respondToServerMessages(self):
 		message = self.connection.recv(4096)
-		message = ircMessage().newMessageFromRawMessage(message)
+		message = IrcMessage.newMessageFromRawMessage(message)
 		if message.isPing:
 			self.sendPongForPing(message)
 		self.addMessageToLog(message)
@@ -100,7 +100,7 @@ class ircConnection():
 		currentTime = time.time()
 		return currentTime - self.lastMessageTimestamp >= timeInSeconds
 
-class ircMessage():
+class IrcMessage():
 	#Initializes all the properties
 	def __init__(self):
 		#Message properties
@@ -127,7 +127,7 @@ class ircMessage():
 	#(out) A shiny new ircMessage object
 	@staticmethod
 	def newMessageFromRawMessage(aRawMessage):
-		newMessage = ircMessage()
+		newMessage = IrcMessage()
 		newMessage.rawMessage = aRawMessage
 
 		#Get sending nick
@@ -190,7 +190,7 @@ class ircMessage():
   	def newRoomMessage(theMessageBody, aRoom = None, offRecord = False):
 		if aRoom == None: aRoom = CONST_ROOM
 		spoofRawMessage = ':{0}! PRIVMSG {1} :{2}\r\n'.format(CONST_NICK, aRoom, theMessageBody)
-		spoofMessage = ircMessage().newMessageFromRawMessage(spoofRawMessage)
+		spoofMessage = IrcMessage.newMessageFromRawMessage(spoofRawMessage)
 		spoofMessage.isOffRecord = offRecord
 		return spoofMessage
 
@@ -202,7 +202,7 @@ class ircMessage():
 	@staticmethod
   	def newPrivateMessage(theMessageBody, aRecievingNick, offRecord = True):
 		spoofRawMessage = ':{0}! PRIVMSG {1} :{2}\r\n'.format(CONST_NICK, aRecievingNick, theMessageBody)
-		spoofMessage = ircMessage().newMessageFromRawMessage(spoofRawMessage)
+		spoofMessage = IrcMessage.newMessageFromRawMessage(spoofRawMessage)
 		spoofMessage.isOffRecord = offRecord
 		return spoofMessage
 
@@ -212,7 +212,7 @@ class ircMessage():
   	#(out) A new ircMessage object
 	@staticmethod
 	def newServerMessage(theMessageBody, offRecord = True):
-		spoofMessage = ircMessage()
+		spoofMessage = IrcMessage()
 		spoofMessage.body = theMessageBody
 		spoofMessage.isServerMessage = True
 		spoofMessage.isOffRecord = offRecord

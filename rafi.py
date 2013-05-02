@@ -8,7 +8,7 @@ import modules.ircCommandModule as ircCommandModule
 import modules.smsModule as smsModule
 import modules.apTrackingModule as apTrackingModule
 
-irc = ircConnection().newConnection()
+irc = IrcConnection.newConnection()
 
 #Main Bot Loop ---------------------------------
 #-----------------------------------------------
