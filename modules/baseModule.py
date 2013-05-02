@@ -143,7 +143,7 @@ def main(irc):
 			messages.append(IrcMessage.newPrivateMessage(sendingMessageBody, message.sendingNick, offRecord = True))
 	#Print Rafi's GitHub if someone mentions it
 	elif message.containsKeywords(['git', irc.nick]):
-		messages.append(IrcMessage.newRoomMessage('My source is at https://github.com/Mov1s/RafiBot.git'))
+		messages.append(message.newResponseMessage('My source is at https://github.com/Mov1s/RafiBot.git'))
 	#Print random Rafi quotes whenever rafi is mentioned
 	elif message.containsKeyword(irc.nick) and not message.isBotCommand:
 		rafiQuotes = []
@@ -163,7 +163,7 @@ def main(irc):
 		rafiQuotes.append("Sometimes when I puke I shit.")
 
 		quoteIndex = randint(0, len(rafiQuotes) - 1)
-		messages.append(IrcMessage.newRoomMessage(rafiQuotes[quoteIndex]))
+		messages.append(message.newResponseMessage(rafiQuotes[quoteIndex]))
 	#Print 'Bewbs' if there has been no room activity for 30 min
 	elif irc.noRoomActivityForTime(1800):
 		messages.append(IrcMessage.newRoomMessage('Bewbs'))
@@ -179,11 +179,7 @@ def main(irc):
 			args = message.botCommandArguments
 			response = createUser(args[0], args[1], args[2], args[3])
 	
-		#Send out the response the same way it was recieved	
-		if message.isPrivateMessage:
-			messages.append(IrcMessage.newPrivateMessage(response, message.sendingNick, offRecord = True))
-		else:
-			messages.append(IrcMessage.newRoomMessage(response))
+		messages.append(message.newResponseMessage(response))
 	#Add a new alias or nick for a user
 	elif message.botCommand == 'addnick':
 		response = ''
@@ -193,11 +189,7 @@ def main(irc):
 			args = message.botCommandArguments
 			response = addNickForEmail(args[0], args[1])
 	
-		#Send out the response the same way it was recieved	
-		if message.isPrivateMessage:
-			messages.append(IrcMessage.newPrivateMessage(response, message.sendingNick, offRecord = True))
-		else:
-			messages.append(IrcMessage.newRoomMessage(response))
+		messages.append(message.newResponseMessage(response))
 	#Return user details for a search string
 	elif message.botCommand == 'userinfo':
 		response = ''
@@ -207,10 +199,6 @@ def main(irc):
 			args = message.botCommandArguments
 			response = informationForUser(args[0])
 	
-		#Send out the response the same way it was recieved	
-		if message.isPrivateMessage:
-			messages.append(IrcMessage.newPrivateMessage(response, message.sendingNick, offRecord = True))
-		else:
-			messages.append(IrcMessage.newRoomMessage(response))
+		messages.append(message.newResponseMessage(response))
 
 	irc.sendMessages(messages)

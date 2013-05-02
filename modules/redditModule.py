@@ -53,9 +53,9 @@ def main(irc):
 						commentLink = getRedditCommentsForLink(logMessage.links[0])
 						break
 			if commentLink:
-				messages.append(IrcMessage.newRoomMessage("Comments at " + commentLink))
+				messages.append(message.newResponseMessage("Comments at " + commentLink))
 			else:
-				messages.append(IrcMessage.newRoomMessage("No source found"))
+				messages.append(message.newResponseMessage("No source found"))
 
 	#If no room activity for 10 mins link the top rated carPorn picture if it hasn't already been linked
 	if irc.noRoomActivityForTime(600):

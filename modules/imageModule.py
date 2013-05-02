@@ -37,7 +37,7 @@ def main(irc):
     if query:
       result = imageMe(query)
       if result:
-        messages.append(IrcMessage.newRoomMessage(result))
+        messages.append(message.newResponseMessage(result))
       else:
-        messages.append(IrcMessage.newRoomMessage('Nothing found for ' + query))
+        messages.append(message.newResponseMessage('Nothing found for ' + query))
   irc.sendMessages(messages)

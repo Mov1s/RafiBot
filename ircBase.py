@@ -122,9 +122,9 @@ class IrcMessage():
 		self.isBotCommand = False
 		self.isOffRecord = False
 
-	#Creates a new ircMessage object from a raw irc message string
+	#Creates a new IrcMessage object from a raw irc message string
 	#(in)aRawMessage - The message string as it comes from the server
-	#(out) A shiny new ircMessage object
+	#(out) A shiny new IrcMessage object
 	@staticmethod
 	def newMessageFromRawMessage(aRawMessage):
 		newMessage = IrcMessage()
@@ -181,11 +181,11 @@ class IrcMessage():
 
   		return newMessage
 
-  	#Creates a new ircMessage object to be sent out to a room
+  	#Creates a new IrcMessage object to be sent out to a room
   	#(in)theMessageBody - The body text for the new irc message
   	#(in)aRoom - [optional] The room to send the message to if it is different than the default room of the irc connection
   	#(in)offRecord - [optional] A flag for whether or not to keep this message in the message log
-  	#(out) A new ircMessage object
+  	#(out) A new IrcMessage object
   	@staticmethod
   	def newRoomMessage(theMessageBody, aRoom = None, offRecord = False):
 		if aRoom == None: aRoom = CONST_ROOM
@@ -194,11 +194,11 @@ class IrcMessage():
 		spoofMessage.isOffRecord = offRecord
 		return spoofMessage
 
-	#Creates a new ircMessage object to be sent out to a nick
+	#Creates a new IrcMessage object to be sent out to a nick
   	#(in)theMessageBody - The body text for the new irc message
   	#(in)aRecievingNick - The nick to send the message to
   	#(in)offRecord - [optional] A flag for whether or not to keep this message in the message log
-  	#(out) A new ircMessage object
+  	#(out) A new IrcMessage object
 	@staticmethod
   	def newPrivateMessage(theMessageBody, aRecievingNick, offRecord = True):
 		spoofRawMessage = ':{0}! PRIVMSG {1} :{2}\r\n'.format(CONST_NICK, aRecievingNick, theMessageBody)
@@ -206,10 +206,10 @@ class IrcMessage():
 		spoofMessage.isOffRecord = offRecord
 		return spoofMessage
 
-	#Creates a new ircMessage object to be sent out to the server
+	#Creates a new IrcMessage object to be sent out to the server
   	#(in)theMessageBody - The body text for the new irc message
   	#(in)offRecord - [optional] A flag for whether or not to keep this message in the message log
-  	#(out) A new ircMessage object
+  	#(out) A new IrcMessage object
 	@staticmethod
 	def newServerMessage(theMessageBody, offRecord = True):
 		spoofMessage = IrcMessage()
@@ -217,6 +217,18 @@ class IrcMessage():
 		spoofMessage.isServerMessage = True
 		spoofMessage.isOffRecord = offRecord
 		return spoofMessage	
+
+	#Creates a new IrcMessage object that is meant to be a direct response to this message
+	#If this message is a PM then the response will be a PM back to that person, if this message is anything else the response is a room message
+	#(in) theMessageBody - The body text for the new irc message
+	#(out) A new IrcMessage object
+	def newResponseMessage(self, theMessageBody):
+		newMessage = None
+		if self.isPrivateMessage:
+			newMessage = IrcMessage.newPrivateMessage(theMessageBody, self.sendingNick)
+		else:
+			newMessage = IrcMessage.newRoomMessage(theMessageBody, self.recievingRoom)
+		return newMessage
 
 	#Checks to see if a message in this room contains a single keyword
 	#(in) aKeyword - The keyword that you want to respond to
