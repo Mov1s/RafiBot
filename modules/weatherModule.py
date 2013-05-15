@@ -78,11 +78,11 @@ def main(irc):
 		query = getTemperatureQuery(message.body)
 		#Temperature command
 		if query:
-			message = currentCondition(query)
-			ircMessage().newRoomMessage(irc, message).send()	
+			newMessage = IrcMessage.newRoomMessage(currentCondition(query))
+			irc.sendMessage(newMessage)
 
 		query = getForecastQuery(message.body)
 		#Temperature command
 		if query:
-			message = currentCondition(query)
-			ircMessage().newRoomMessage(irc, message).send()	
+			newMessage = IrcMessage.newRoomMessage(currentCondition(query))
+			irc.sendMessage(newMessage)
