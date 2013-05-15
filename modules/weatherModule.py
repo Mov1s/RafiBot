@@ -21,7 +21,7 @@ def getTemperatureQuery(message):
 		return None	
 
 def getForecastQuery(message):
-	expression = re.compile('(forcase|fore)( me| ma)? (.*)', re.IGNORECASE)
+	expression = re.compile('(forecast|fore)( me| ma)? (.*)', re.IGNORECASE)
 	match = expression.match(message)
 	if match:
 		return match.group(3)
@@ -49,7 +49,7 @@ def currentCondition(query):
 		message = "Multiple results returned; please use a more specific search string."	
 		return message
 
-def forecast(query):
+def forecast(query, irc, sendingNick):
 	#Request Weather Underground for weather 
 	query = query.replace(',', '%2C')
 	query = query.replace(' ', '+')
@@ -58,16 +58,20 @@ def forecast(query):
 	f = urllib2.urlopen(url)
 	json_string = f.read()
 	parsed_json = json.loads(json_string)
+	
 	try:	
-		location = parsed_json['forecast']['display_lecation']['full']
-		temp_f = parsed_json['current_observation']['temp_f']
-		feelslike_f = parsed_json['current_observation']['feelslike_f']
-		weather = parsed_json['current_observation']['weather']
+		for days, item in enumerate(parsed_json['forecast']['txt_forecast']['forecastday']):
+			day = item['title']
+			conditions = item['fcttext']
 
-		message = "It is " + str(temp_f) + "F and " + weather + ", Feels Like " + str(feelslike_f) + "F in " + location
+			newMessage = IrcMessage.newPrivateMessage(day + ": " + conditions, sendingNick, offRecord = True)
+			irc.sendMessage(newMessage)
+	
 		return message
 	except:
 		message = "Multiple results returned; please use a more specific search string."	
+		newMessage = IrcMessage.newPrivateMessage(message, sendingNick, offRecord = True)
+		irc.sendMessage(newMessage)
 		return message
 
 
@@ -84,5 +88,4 @@ def main(irc):
 		query = getForecastQuery(message.body)
 		#Temperature command
 		if query:
-			newMessage = IrcMessage.newRoomMessage(currentCondition(query))
-			irc.sendMessage(newMessage)
+			forecast(query, irc, message.sendingNick)
