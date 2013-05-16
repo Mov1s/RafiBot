@@ -97,16 +97,20 @@ def informationForUser(theSearchString):
 def main(irc):
 	message = irc.lastMessage()
 	historyRequest = getHistoryQuery(message) if message.body != None else None
+	messages = []
 
 	#Quit when told to
 	if message.botCommand == 'quit':
-		ircMessage().newRoomMessage(irc, 'Later fags').send()
-		ircMessage().newServerMessage(irc, 'QUIT').send()
+		messages.append(IrcMessage.newRoomMessage('Later fags'))
+		messages.append(IrcMessage.newServerMessage('QUIT'))
+		irc.sendMessages(messages)
+
 		sys.exit()
 	#Quit with update message
 	elif message.botCommand == 'update':
-		ircMessage().newRoomMessage(irc, 'Brb, updating').send()
-		ircMessage().newServerMessage(irc, 'QUIT').send()
+		messages.append(IrcMessage.newRoomMessage('Brb, updating'))
+		messages.append(IrcMessage.newServerMessage('QUIT'))
+		irc.sendMessages(messages)
 
 		#Call Rafi Git Update Script
 		subprocess.call(["./rafiUpdater", "development"])
@@ -136,10 +140,10 @@ def main(irc):
 		#PM the requested message history
 		for historyMessage in reversed(historyMessages):
 			sendingMessageBody = '{0}: {1}'.format(historyMessage.sendingNick, historyMessage.body)
-			ircMessage().newPrivateMessage(irc, sendingMessageBody, message.sendingNick, offRecord = True).send()
+			messages.append(IrcMessage.newPrivateMessage(sendingMessageBody, message.sendingNick, offRecord = True))
 	#Print Rafi's GitHub if someone mentions it
 	elif message.containsKeywords(['git', irc.nick]):
-		ircMessage().newRoomMessage(irc, 'My source is at https://github.com/Mov1s/RafiBot.git').send()
+		messages.append(message.newResponseMessage('My source is at https://github.com/Mov1s/RafiBot.git'))
 	#Print random Rafi quotes whenever rafi is mentioned
 	elif message.containsKeyword(irc.nick) and not message.isBotCommand:
 		rafiQuotes = []
@@ -159,13 +163,13 @@ def main(irc):
 		rafiQuotes.append("Sometimes when I puke I shit.")
 
 		quoteIndex = randint(0, len(rafiQuotes) - 1)
-		ircMessage().newRoomMessage(irc, rafiQuotes[quoteIndex]).send()
+		messages.append(message.newResponseMessage(rafiQuotes[quoteIndex]))
 	#Print 'Bewbs' if there has been no room activity for 30 min
 	elif irc.noRoomActivityForTime(1800):
-		ircMessage().newRoomMessage(irc, 'Bewbs').send()
+		messages.append(IrcMessage.newRoomMessage('Bewbs'))
 	#Print the shiva blast if someone says shiva
 	elif message.containsKeyword('shiva'):
-		ircMessage().newRoomMessage(irc, 'SHIVAKAMINISOMAKANDAKRAAAAAAAM!').send()
+		messages.append(IrcMessage.newRoomMessage('SHIVAKAMINISOMAKANDAKRAAAAAAAM!'))
 	#Register a new user
 	elif message.botCommand == 'adduser':
 		response = ''
@@ -175,11 +179,7 @@ def main(irc):
 			args = message.botCommandArguments
 			response = createUser(args[0], args[1], args[2], args[3])
 	
-		#Send out the response the same way it was recieved	
-		if message.isPrivateMessage:
-			ircMessage().newPrivateMessage(irc, response, message.sendingNick, offRecord = True).send()
-		else:
-			ircMessage().newRoomMessage(irc, response).send()
+		messages.append(message.newResponseMessage(response))
 	#Add a new alias or nick for a user
 	elif message.botCommand == 'addnick':
 		response = ''
@@ -189,11 +189,7 @@ def main(irc):
 			args = message.botCommandArguments
 			response = addNickForEmail(args[0], args[1])
 	
-		#Send out the response the same way it was recieved	
-		if message.isPrivateMessage:
-			ircMessage().newPrivateMessage(irc, response, message.sendingNick, offRecord = True).send()
-		else:
-			ircMessage().newRoomMessage(irc, response).send()
+		messages.append(message.newResponseMessage(response))
 	#Return user details for a search string
 	elif message.botCommand == 'userinfo':
 		response = ''
@@ -203,8 +199,6 @@ def main(irc):
 			args = message.botCommandArguments
 			response = informationForUser(args[0])
 	
-		#Send out the response the same way it was recieved	
-		if message.isPrivateMessage:
-			ircMessage().newPrivateMessage(irc, response, message.sendingNick, offRecord = True).send()
-		else:
-			ircMessage().newRoomMessage(irc, response).send()
+		messages.append(message.newResponseMessage(response))
+
+	irc.sendMessages(messages)

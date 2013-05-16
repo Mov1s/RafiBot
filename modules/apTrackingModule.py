@@ -147,6 +147,7 @@ def getApStatsForNick(aMessageNick):
 
 def main(irc):
 	message = irc.lastMessage()
+	messages = []
 
 	#Needs message body
 	if message.body == None:
@@ -155,12 +156,14 @@ def main(irc):
 	#Start tracking an AP
 	if apStartQuery(message.body):
 		returnMessage = startTrackingApForNick(message.sendingNick)
-		ircMessage().newRoomMessage(irc, returnMessage).send()
+		messages.append(message.newResponseMessage(returnMessage))
 	#Stop tracking an AP
 	elif apStopQuery(message.body):
 		returnMessage = stopTrackingApForNick(message.sendingNick)
-		ircMessage().newRoomMessage(irc, returnMessage).send()
+		messages.append(message.newResponseMessage(returnMessage))
 	#Print the stats for AP
 	elif apStatsQuery(message.body):
 		returnMessage = getApStatsForNick(message.sendingNick)
-		ircMessage().newRoomMessage(irc, returnMessage).send()
+		messages.append(message.newResponseMessage(returnMessage))
+
+	irc.sendMessages(messages)

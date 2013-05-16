@@ -41,7 +41,8 @@ def readEmail (irc, contactList):
 							message = attachment.get_payload(decode=True)
 						contact = contactList[getContactIndex(contactList, fromAddr[:10]) -1].split("|")
 						if getContactIndex(contactList, fromAddr[:10]) <> -1:	
-							ircMessage.newRoomMessage(irc, "<" + contact[0] + "> " + message).send()
+							newMessage = ircMessage.newRoomMessage("<" + contact[0] + "> " + message)
+							irc.sendMessage(newMessage)
 				typ, response = conn.store(num, '+FLAGS', r'(\Seen)')
 		finally:
 			try:
@@ -107,8 +108,9 @@ def main(irc):
  	message = irc.lastMessage()
 	contactList = getContactList()
 	readEmail(irc, contactList)
+	messages = []
 	if message.botCommand == "contacts":
-		ircMessage.newRoomMessage(irc, "Contacts in system:" + getContacts(contactList).replace("|",",")).send()		
+		messages.append(ircMessage.newRoomMessage("Contacts in system:" + getContacts(contactList).replace("|",",")))		
 	if message.body != None:
 		text = getQuery(contactList,message.body,CONST_MESSAGE)
 		if text:
@@ -118,8 +120,9 @@ def main(irc):
 				try:
 					print message.sendingNick
 					sendMail(contactList,contact,"<" + message.sendingNick + "> " + text)
-					ircMessage.newRoomMessage(irc, "Text message sent to " + contact).send()
+					messages.append(ircMessage.newRoomMessage("Text message sent to " + contact))
 				except:
 					return
 			else:
-				ircMessage.newRoomMessage(irc, "Does not match any known contact.").send()
+				messages.append(ircMessage.newRoomMessage("Does not match any known contact."))
+	irc.sendMessages(messages)

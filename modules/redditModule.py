@@ -37,6 +37,7 @@ def getRedditCommentsForLink(link):
 
 def main(irc):
 	message = irc.lastMessage()
+	messages = []
 
 	#Return reddit comments for a link if provided
 	#If no link provided return comments for last posted link
@@ -52,9 +53,9 @@ def main(irc):
 						commentLink = getRedditCommentsForLink(logMessage.links[0])
 						break
 			if commentLink:
-				ircMessage().newRoomMessage(irc, "Comments at " + commentLink).send()
+				messages.append(message.newResponseMessage("Comments at " + commentLink))
 			else:
-				ircMessage().newRoomMessage(irc, "No source found").send()
+				messages.append(message.newResponseMessage("No source found"))
 
 	#If no room activity for 10 mins link the top rated carPorn picture if it hasn't already been linked
 	if irc.noRoomActivityForTime(600):
@@ -73,7 +74,9 @@ def main(irc):
 			topRedditLink = anchors[0]['href']
 			if topRedditLink != lastPostedLink:
 				lastPostedLink = topRedditLink
-				ircMessage.newRoomMessage(irc, topRedditLink).send()
+				messages.append(ircMessage.newRoomMessage(topRedditLink))
 		except:
 			return
+
+	irc.sendMessages(messages)
 
