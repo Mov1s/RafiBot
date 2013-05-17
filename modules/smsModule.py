@@ -56,7 +56,7 @@ def readEmail (irc, contactList):
 
 def getContactIndex (contactList, contact):
 	for i, s in enumerate(contactList):
-		if contact in s:
+		if contact in s and i>=2:
 			return i
 	return -1
 
