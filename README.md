@@ -19,12 +19,13 @@ Now you are good to go!  Just run `python2 ./rafi.py` and watch him rage!
 
 Rafi's current capabilities are pretty limited but I would like to continue to develop him.  In the future I would like to see a few things that will help make our community development of him easier.
  
-* Automatic deployment
-    * Rafi currently responds to the update command, but all it does is make him quit with an update message so that I can restart him with new code.
-    * I would like this eventually to make him quit, pull the latest code from git and then start himself back up, so that anyone can make changes and tell him to use them imediatley instead of having me restart him.
 * Database migration
-    * I intend to use a local mySQL database in some of the future modules, I would like to make a way for you guys to do the same.
-    * This means you need a way to create your own database schema and have him apply it during deployment.
+    * MySQL is used in a few modules and migration files have been written to apply the database changes needed to run modules but they are not automatic
+    * This needs to be automated and have him apply the schema changes during deployment.
+
+* Update recovery
+    * If the update process fails Rafi fails to rejoin, meaning the error needs to be manually fixed and then he can be relaunched
+    * It would be great if Rafi would revert the update and rejoin the server alerting users that the update failed
 
 ## Building a module
 
