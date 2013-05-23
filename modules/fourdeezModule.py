@@ -32,7 +32,7 @@ def main(irc):
   if(weekday == 3):
     #Randomly link fourdeez images
     if message.isPing:
-      shouldShow = randint(0, 1) == 0
+      shouldShow = randint(0, 100) == 0
       if shouldShow:
         imageIndex = randint(0, len(fourdeezImages) - 1)
         messages.append(message.newRoomMessage('FOURDEEZ!! ' + fourdeezImages[imageIndex]))
