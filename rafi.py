@@ -7,6 +7,7 @@ import modules.imageModule as imageModule
 import modules.ircCommandModule as ircCommandModule
 import modules.smsModule as smsModule
 import modules.apTrackingModule as apTrackingModule
+import modules.fourdeezModule as fourdeezModule
 
 irc = IrcConnection.newConnection()
 
@@ -23,5 +24,6 @@ while True:
    imageModule.main(irc)
    smsModule.main(irc)
    apTrackingModule.main(irc)
+   fourdeezModule.main(irc)
 
    print irc.lastMessage().rawMessage
