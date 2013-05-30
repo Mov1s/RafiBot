@@ -62,19 +62,21 @@ def main(irc):
 		try:
 			urlFormat = '/r/carporn'
 			url = 'http://www.reddit.com' + urlFormat
-			response = urllib2.urlopen(url)
+			request = urllib2.Request(url)
+			request.add_header('User-agent', 'Mozilla/5.0')
+			response = urllib2.urlopen(request)
 			responseBodyString = response.read()
 
 			#Find all of the links
 			soup = BeautifulSoup(responseBodyString)
 			anchors = soup.find_all('a', "title")
-
+			
 			#Show the top link if it hasn't already been posted
 			global lastPostedLink
 			topRedditLink = anchors[0]['href']
 			if topRedditLink != lastPostedLink:
 				lastPostedLink = topRedditLink
-				messages.append(ircMessage.newRoomMessage(topRedditLink))
+				messages.append(IrcMessage.newRoomMessage(topRedditLink))
 		except:
 			return
 
