@@ -5,8 +5,15 @@ from datetime import date
 
 #Define the images to link
 fourdeezImages = []
-fourdeezImages.append('https://www.dropbox.com/s/auf8gcy6q8n4y1e/Fourdeezz%20Bear.png')
-fourdeezImages.append('https://www.dropbox.com/s/tpz37n67ece328t/Fourdeezz%20Hippo.png')
+fourdeezImages.append('https://www.dropbox.com/s/zxzd30en1g6w0gk/Fourdeeezzzz%20Ape.png')
+fourdeezImages.append('https://www.dropbox.com/s/8yvynoqzgflm053/Fourdeeezzzz%20Busey.png')
+fourdeezImages.append('https://www.dropbox.com/s/a9vbs9x9935z71q/Fourdeeezzzz%20Cagerous.png')
+fourdeezImages.append('https://www.dropbox.com/s/aped6xf3w0d3q2i/Fourdeeezzzz%20Horses.png')
+fourdeezImages.append('https://www.dropbox.com/s/3swjsjenkfazso7/Fourdeeezzzz%20Loude%20Noises.png')
+fourdeezImages.append('https://www.dropbox.com/s/bo6inwweldfz6j3/Fourdeeezzzz%20Rambo.png')
+fourdeezImages.append('https://www.dropbox.com/s/49f0uuvchrp44cj/Fourdeeezzzz%20Woods.png')
+fourdeezImages.append('https://www.dropbox.com/s/7xcqzfkgyc3qghn/Fourdeezz%20Bear.png')
+fourdeezImages.append('https://www.dropbox.com/s/haq780vh93xv97i/Fourdeezz%20Hippo.png')
 
 #Checks to see if a message contains 'tonight' but not 'tonight tonight'
 def didFuckUpTonightTonight(message):
