@@ -7,6 +7,19 @@ from random import randint
 googleAPI = 'http://ajax.googleapis.com'
 uriFormat = '/ajax/services/search/images?v=1.0&rsz=8&q='
 
+class ImageModule(IrcModule):
+
+  def defineResponses(self):
+    self.respondToRegex('(image|img)( me| ma)? (.*)', imageMaResponse) 
+
+#Response for the 'img ma' expression
+def imageMaResponse(aMessage, **extraArgs):
+  query = extraArgs['matchGroup'][2]
+  result = imageMe(query)
+  response = result if result else 'Nothing found for ' + query
+  return aMessage.newResponseMessage(response)
+
+#Searches google images for query and returns a random link
 def imageMe(query):
   try:
     query = query.replace(' ', '+')
@@ -20,24 +33,4 @@ def imageMe(query):
       return image
   except:
     return None
-
-def getQuery(message):
-  expression = re.compile('(image|img)( me| ma)? (.*)', re.IGNORECASE)
-  match = expression.match(message)
-  if match:
-    return match.group(3)
-  else:
-    return None
-
-def main(irc):
-  message = irc.lastMessage()
-  messages = []
-  if message.body != None:
-    query = getQuery(message.body)
-    if query:
-      result = imageMe(query)
-      if result:
-        messages.append(message.newResponseMessage(result))
-      else:
-        messages.append(message.newResponseMessage('Nothing found for ' + query))
-  irc.sendMessages(messages)
+  
