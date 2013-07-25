@@ -292,3 +292,23 @@ class IrcModule:
     #Register an idle time to respond to
     def respondToIdleTime(self, timeInSeconds, anAction):
         self.idleActions[timeInSeconds] = anAction
+
+class IrcBot:
+
+    def __init__(self):
+        self.irc = IrcConnection.newConnection()
+        self.modules = []
+
+    def attachModule(self, aModule):
+        self.modules.append(aModule)
+
+    def run(self):
+        while True:
+            self.irc.respondToServerMessages()
+
+            messages = []
+            for module in self.modules:
+                messages = messages + module.do(irc.lastMessage())
+            irc.sendMessages(messages)
+
+            print irc.lastMessage().rawMessage
