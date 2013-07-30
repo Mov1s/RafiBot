@@ -10,26 +10,26 @@ uriFormat = '/ajax/services/search/images?v=1.0&rsz=8&q='
 class ImageModule(IrcModule):
 
   def defineResponses(self):
-    self.respondToRegex('(image|img)( me| ma)? (.*)', imageMaResponse) 
+    self.respondToRegex('(image|img)( me| ma)? (.*)', img_ma_response) 
 
 #Response for the 'img ma' expression
-def imageMaResponse(aMessage, **extraArgs):
-  query = extraArgs['matchGroup'][2]
-  result = imageMe(query)
-  response = result if result else 'Nothing found for ' + query
-  return aMessage.newResponseMessage(response)
+def img_ma_response(message, **extra_args):
+  query = extra_args['matchGroup'][2]
+  image_link = random_image_link_for_query(query)
+  response = image_link if result else 'Nothing found for ' + query
+  return message.newResponseMessage(response)
 
 #Searches google images for query and returns a random link
-def imageMe(query):
+def random_image_link_for_query(query):
   try:
     query = query.replace(' ', '+')
     url = googleAPI + uriFormat + query
     response = urllib2.urlopen(url)
     responseString = response.read()
     responseJSON = json.loads(responseString)
-    length = len(responseJSON['responseData']['results'])
+    length = len(responseJSON['responseData']['image_links'])
     if length > 0:
-      image = responseJSON['responseData']['results'][randint(0, length - 1)]['unescapedUrl']
+      image = responseJSON['responseData']['image_links'][randint(0, length - 1)]['unescapedUrl']
       return image
   except:
     return None

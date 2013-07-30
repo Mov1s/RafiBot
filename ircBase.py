@@ -251,7 +251,8 @@ class IrcMessage():
 #A class representing an IRC module
 class IrcModule:
 
-    def __init__(self):
+    def __init__(self, anIrcBot=None):
+        self.ircBot = anIrcBot
         self.regexActions = {}
         self.idleActions = {}
         self.defineResponses()
@@ -259,12 +260,14 @@ class IrcModule:
     #Checks all actions of this module against a message
     def do(self, someMessage):
         regexResponses = self.evaluateRegexes(someMessage)
-        return regexResponses    
+        idleResponses = self.evaluateIdleTimes()
+        return regexResponses + idleResponses
 
     #Override for subclasses to define what to respond too
     def defineResponses():
         return
 
+    #Check all of the Regex filters and return their messages
     def evaluateRegexes(self, someMessage):
         if not someMessage.body:
             return []
@@ -273,17 +276,24 @@ class IrcModule:
         for regex, action in self.regexActions.iteritems():
             matchGroup = self.evaluateRegex(regex, someMessage.body)
             if matchGroup:
-                responses.append(action(someMessage, matchGroup = matchGroup))
+                responses.append(action(someMessage, matchGroup=matchGroup, ircConnection=self.ircBot.irc))
         return responses
 
-    def evaluateRegex(self, aRegex, aMessage):
-        expression = re.compile(aRegex, re.IGNORECASE)
-        match = expression.match(aMessage)
-        return match.groups() if match else None
+    #Check all of the idle time filters and return their messages
+    def evaluateIdleTimes(self):
+        responses = []
+        for idleTime, action in self.idleActions.iteritems():
+            if(self.ircBot.irc.noRoomActivityForTime(idleTime)):
+                message = action(ircConnection=self.ircBot.irc)
+                if message:
+                    responses.append(message)
+        return responses
 
-    #Register a keyword to respond to
-    def respondToKeyword(self, aKeyword, anAction):
-        self.respondToRegex(aKeyword, anAction)
+    #Return an array of match parts for a regex and string
+    def evaluateRegex(self, aRegex, aMessageBody):
+        expression = re.compile(aRegex, re.IGNORECASE)
+        match = expression.match(aMessageBody)
+        return match.groups() if match else None
 
     #Register a regex to respond to
     def respondToRegex(self, aKeyword, anAction):
@@ -300,6 +310,7 @@ class IrcBot:
         self.modules = []
 
     def attachModule(self, aModule):
+        aModule.ircBot = self
         self.modules.append(aModule)
 
     def run(self):
@@ -308,7 +319,7 @@ class IrcBot:
 
             messages = []
             for module in self.modules:
-                messages = messages + module.do(irc.lastMessage())
-            irc.sendMessages(messages)
+                messages = messages + module.do(self.irc.lastMessage())
+            self.irc.sendMessages(messages)
 
-            print irc.lastMessage().rawMessage
+            print self.irc.lastMessage().rawMessage

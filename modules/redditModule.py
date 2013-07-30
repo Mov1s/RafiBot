@@ -6,14 +6,48 @@ from bs4 import BeautifulSoup
 
 lastPostedLink = ''
 
-#Check if a message is requesting the source of a link
-def getSourceQuery(message):
-	expression = re.compile('(source|src)( me| ma)? (.*)', re.IGNORECASE)
-	match = expression.match(message)
-	if match:
-		return match.group(3)
-	else:
-		return None
+class RedditModule(IrcModule):
+	
+	def defineResponses(self):
+		self.respondToRegex('(source|src)( me| ma)? (.*)', srcMaResponse)
+		self.respondToIdleTime(10, idleCarPornResponse)
+
+def srcMaResponse(aMessage, **extraArgs):
+	sourceQuery = extraArgs['matchGroup'][2]
+	commentLink = None
+	if sourceQuery:
+		if aMessage.hasLinks:
+			commentLink = getRedditCommentsForLink(aMessage.links[0])
+		else:
+			for logMessage in reversed(extraArgs['ircConnection'].messageLog):
+				if logMessage.hasLinks:
+					commentLink = getRedditCommentsForLink(logMessage.links[0])
+					break
+		response = "Comments at " + commentLink if commentLink else "No source found"
+		return aMessage.newResponseMessage(response)
+
+def idleCarPornResponse(**extraArgs):
+	try:
+		urlFormat = '/r/carporn'
+		url = 'http://www.reddit.com' + urlFormat
+		request = urllib2.Request(url)
+		request.add_header('User-agent', 'Mozilla/5.0')
+		response = urllib2.urlopen(request)
+		responseBodyString = response.read()
+
+		#Find all of the links
+		soup = BeautifulSoup(responseBodyString)
+		anchors = soup.find_all('a', "title")
+		
+		#Show the top link if it hasn't already been posted
+		global lastPostedLink
+		topRedditLink = anchors[0]['href']
+		if topRedditLink != lastPostedLink:
+			lastPostedLink = topRedditLink
+			return IrcMessage.newRoomMessage(topRedditLink)
+	except:
+		return
+
 
 #Searches reddit for a specific link and returns the comments if any are found
 def getRedditCommentsForLink(link):
@@ -34,51 +68,4 @@ def getRedditCommentsForLink(link):
 			return commentLink
 	except:
 		return None
-
-def main(irc):
-	message = irc.lastMessage()
-	messages = []
-
-	#Return reddit comments for a link if provided
-	#If no link provided return comments for last posted link
-	if not message.body == None:
-		commentLink = None
-		sourceQuery = getSourceQuery(message.body)
-		if sourceQuery:
-			if message.hasLinks:
-				commentLink = getRedditCommentsForLink(message.links[0])
-			else:
-				for logMessage in reversed(irc.messageLog):
-					if logMessage.hasLinks:
-						commentLink = getRedditCommentsForLink(logMessage.links[0])
-						break
-			if commentLink:
-				messages.append(message.newResponseMessage("Comments at " + commentLink))
-			else:
-				messages.append(message.newResponseMessage("No source found"))
-
-	#If no room activity for 10 mins link the top rated carPorn picture if it hasn't already been linked
-	if irc.noRoomActivityForTime(600):
-		try:
-			urlFormat = '/r/carporn'
-			url = 'http://www.reddit.com' + urlFormat
-			request = urllib2.Request(url)
-			request.add_header('User-agent', 'Mozilla/5.0')
-			response = urllib2.urlopen(request)
-			responseBodyString = response.read()
-
-			#Find all of the links
-			soup = BeautifulSoup(responseBodyString)
-			anchors = soup.find_all('a', "title")
-			
-			#Show the top link if it hasn't already been posted
-			global lastPostedLink
-			topRedditLink = anchors[0]['href']
-			if topRedditLink != lastPostedLink:
-				lastPostedLink = topRedditLink
-				messages.append(IrcMessage.newRoomMessage(topRedditLink))
-		except:
-			return
-
-	irc.sendMessages(messages)
 
