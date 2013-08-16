@@ -251,8 +251,8 @@ class IrcMessage():
 #A class representing an IRC module
 class IrcModule:
 
-    def __init__(self, anIrcBot=None):
-        self.ircBot = anIrcBot
+    def __init__(self):
+        self.ircBot = None
         self.regexActions = {}
         self.idleActions = {}
         self.defineResponses()
