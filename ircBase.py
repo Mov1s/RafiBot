@@ -276,7 +276,11 @@ class IrcModule:
         for regex, action in self.regexActions.iteritems():
             matchGroup = self.evaluateRegex(regex, someMessage.body)
             if matchGroup:
-                responses.append(action(someMessage, matchGroup=matchGroup, ircConnection=self.ircBot.irc))
+                messages = action(someMessage, matchGroup=matchGroup, ircConnection=self.ircBot.irc)
+                if isinstance(messages, list):
+                   responses = responses + messages
+                elif messages:
+                    responses.append(messages)
         return responses
 
     #Check all of the idle time filters and return their messages
@@ -284,9 +288,11 @@ class IrcModule:
         responses = []
         for idleTime, action in self.idleActions.iteritems():
             if(self.ircBot.irc.noRoomActivityForTime(idleTime)):
-                message = action(ircConnection=self.ircBot.irc)
-                if message:
-                    responses.append(message)
+                messages = action(ircConnection=self.ircBot.irc)
+                if isinstance(messages, list):
+                   responses = responses + messages
+                elif messages:
+                    responses.append(messages)
         return responses
 
     #Return an array of match parts for a regex and string
