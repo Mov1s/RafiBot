@@ -4,20 +4,27 @@ import urllib2
 import urllib
 from bs4 import BeautifulSoup
 
+
+def getQuery(message):
+	expression = re.compile('(temperature|temp)( me| ma)? (.*)', re.IGNORECASE)
+	match = expression.match(message)
+	if match:
+		return match.group(3)
+	else:
+		return None	
+
 def main(irc):
-  	message = irc.lastMessage()
+ 	message = irc.lastMessage()
 	
 	if message.body != None:
-		expression = re.compile('(temperature|temp)(me|ma)? (.*)', re.IGNORECASE)
-		match = expression.match(message.body)
-
+		query = getQuery(message.body)
 		#Temperature command
-		if match:
+		if query:
 			try:
 				#Request Weather Underground for weather 
-				temperature = message.body[message.body.rfind('weather') + 8:].replace(' ', '+')
-				temperature = temperature.replace(',', '%2C')
-				url = "http://www.wunderground.com/cgi-bin/findweather/hdfForecast?query=" + temperature
+				query = query.replace(',', '%2C')
+				query = query.replace(' ', '+')
+				url = "http://www.wunderground.com/cgi-bin/findweather/hdfForecast?query=" + query 
 				responseBodyString = urllib2.urlopen(url).read()
 
 				soup = BeautifulSoup(responseBodyString)

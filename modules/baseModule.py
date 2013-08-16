@@ -3,8 +3,15 @@ from ircBase import *
 from random import randint
 import sys
 
+#Check if a message is requesting room history
+def getHistoryQuery(aMessage):
+	expression = re.compile('(history|hist) (me|ma)(.*)', re.IGNORECASE)
+	match = expression.match(aMessage.body)
+	return match
+
 def main(irc):
 	message = irc.lastMessage()
+	historyRequest = getHistoryQuery(message) if message.body != None else None
 
 	#Quit when told to
 	if message.botCommand == 'quit':
@@ -17,19 +24,29 @@ def main(irc):
 		ircMessage().newServerMessage(irc, 'QUIT').send()
 		sys.exit()
 	#Print the last 10 room messages
-	elif message.botCommand == 'history':
-		messageParts = message.body.split()
+	elif historyRequest:
+		#Determine how many messages to show
 		historyDepth = 10 if len(irc.messageLog) > 11 else len(irc.messageLog) - 1
-		if len(messageParts) >= 3:
+		if historyRequest.group(3):
 			try:
-				historyDepth = int(messageParts[2]) if int(messageParts[2]) < len(irc.messageLog) else len(irc.messageLog) - 1
+				historyDepth = int(historyRequest.group(3)) if int(historyRequest.group(3)) < len(irc.messageLog) else len(irc.messageLog) - 1
 			except:
 				return
-		for i in range(0, historyDepth):
-			aMessage = irc.messageLog[len(irc.messageLog) - 1 - historyDepth + i]
-			if aMessage.body != None:
-				sendingMessageBody = '{0}: {1}'.format(aMessage.sendingNick, aMessage.body)
-				ircMessage().newRoomMessage(irc, sendingMessageBody, offRecord = True).send()
+
+		#Determine which messages the user wants to see
+		historyCount = 0
+		historyMessages = []
+		for logMessage in reversed(irc.messageLog[:-1]):
+			if logMessage.body != None:
+				historyMessages.append(logMessage)
+				historyCount += 1
+			if historyCount >= historyDepth:
+				break
+
+		#PM the requested message history
+		for historyMessage in reversed(historyMessages):
+			sendingMessageBody = '{0}: {1}'.format(historyMessage.sendingNick, historyMessage.body)
+			ircMessage().newPrivateMessage(irc, sendingMessageBody, message.sendingNick, offRecord = True).send()
 	#Print Rafi's GitHub if someone mentions it
 	elif message.containsKeywords(['git', irc.nick]):
 		ircMessage().newRoomMessage(irc, 'My source is at https://github.com/Mov1s/RafiBot.git').send()
