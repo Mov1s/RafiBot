@@ -4,40 +4,33 @@ import json
 import re
 from random import randint
 
-googleAPI = 'http://ajax.googleapis.com'
-uriFormat = '/ajax/services/search/images?v=1.0&rsz=8&q='
+GOOGLE_API_URL = 'http://ajax.googleapis.com'
+URI_FORMAT = '/ajax/services/search/images?v=1.0&rsz=8&q='
 
-def imageMe(query):
+class ImageModule(IrcModule):
+
+  def defineResponses(self):
+    self.respondToRegex('(image|img)( me| ma)? (.*)', img_ma_response) 
+
+#Response for the 'img ma' expression
+def img_ma_response(message, **extra_args):
+  query = extra_args['matchGroup'][2]
+  image_link = random_image_link_for_query(query)
+  response = image_link if image_link else 'Nothing found for ' + query
+  return message.newResponseMessage(response)
+
+#Searches google images for query and returns a random link
+def random_image_link_for_query(query):
   try:
     query = query.replace(' ', '+')
-    url = googleAPI + uriFormat + query
+    url = GOOGLE_API_URL + URI_FORMAT + query
     response = urllib2.urlopen(url)
-    responseString = response.read()
-    responseJSON = json.loads(responseString)
-    length = len(responseJSON['responseData']['results'])
+    response_string = response.read()
+    response_JSON = json.loads(response_string)
+    length = len(response_JSON['responseData']['results'])
     if length > 0:
-      image = responseJSON['responseData']['results'][randint(0, length - 1)]['unescapedUrl']
+      image = response_JSON['responseData']['results'][randint(0, length - 1)]['unescapedUrl']
       return image
   except:
     return None
-
-def getQuery(message):
-  expression = re.compile('(image|img)( me| ma)? (.*)', re.IGNORECASE)
-  match = expression.match(message)
-  if match:
-    return match.group(3)
-  else:
-    return None
-
-def main(irc):
-  message = irc.lastMessage()
-  messages = []
-  if message.body != None:
-    query = getQuery(message.body)
-    if query:
-      result = imageMe(query)
-      if result:
-        messages.append(message.newResponseMessage(result))
-      else:
-        messages.append(message.newResponseMessage('Nothing found for ' + query))
-  irc.sendMessages(messages)
+  
