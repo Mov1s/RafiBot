@@ -19,7 +19,7 @@ class RedditModule(IrcModule):
       if aMessage.hasLinks:
         commentLink = getRedditCommentsForLink(aMessage.links[0])
       else:
-        for logMessage in reversed(extraArgs['ircConnection'].messageLog):
+        for logMessage in reversed(self.ircBot.irc.messageLog):
           if logMessage.hasLinks:
             commentLink = getRedditCommentsForLink(logMessage.links[0])
             break
