@@ -2,6 +2,7 @@ import socket
 import time
 import re
 import ConfigParser
+import MySQLdb as mdb
 from urlparse import urlparse
 
 config = ConfigParser.SafeConfigParser()
@@ -11,6 +12,8 @@ CONST_NETWORK = config.get('Connection', 'server')
 CONST_PORT = int(config.get('Connection', 'port'))
 CONST_ROOM = config.get('Connection', 'room')
 CONST_NICK = config.get('Connection', 'nick')
+CONST_DB_USER = config.get('MySql', 'username')
+CONST_DB_PASSWORD = config.get('MySql', 'password')
 
 class IrcConnection():
     """A class representing an IRC connection.
@@ -296,7 +299,7 @@ class IrcModule:
         self.idleActions[timeInSeconds] = anAction
 
 
-class IrcBot:
+class IrcBot(object):
     """Class representing an IRC bot.
 
     Keep a connection to the server and respond to IRC actiity.
@@ -305,6 +308,7 @@ class IrcBot:
     """
     def __init__(self):
         """Initialize the bot with the default IRC connection."""
+        self._databaseConnection = None
         self.irc = IrcConnection.newConnection()
         self.modules = []
 
@@ -312,6 +316,12 @@ class IrcBot:
         """Add a movule to the list of modules this bot should evaluate."""
         aModule.ircBot = self
         self.modules.append(aModule)
+
+    def databaseConnection(self):
+        """Construct a database connection if there is not one and return it."""
+        if not self._databaseConnection:
+            self._databaseConnection = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD)
+        return self._databaseConnection
 
     def run(self):
         """Start the bot responding to IRC activity."""
