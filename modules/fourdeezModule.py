@@ -14,6 +14,7 @@ fourdeezImages.append('https://www.dropbox.com/s/bo6inwweldfz6j3/Fourdeeezzzz%20
 fourdeezImages.append('https://www.dropbox.com/s/49f0uuvchrp44cj/Fourdeeezzzz%20Woods.png')
 fourdeezImages.append('https://www.dropbox.com/s/7xcqzfkgyc3qghn/Fourdeezz%20Bear.png')
 fourdeezImages.append('https://www.dropbox.com/s/haq780vh93xv97i/Fourdeezz%20Hippo.png')
+fourdeezImages.append('http://i.imgur.com/CA8U1m1.gif')
 
 #Checks to see if a message contains 'tonight' but not 'tonight tonight'
 def didFuckUpTonightTonight(message):

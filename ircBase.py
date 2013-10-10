@@ -51,10 +51,16 @@ class IrcConnection():
 	#Recieves message from the server, responds if it is a ping request, otherwise log the message
 	def respondToServerMessages(self):
 		message = self.connection.recv(4096)
+
+		#Check if the connection is still up
+		if len(message) == 0:
+			return False
+
 		message = IrcMessage.newMessageFromRawMessage(message)
 		if message.isPing:
 			self.sendPongForPing(message)
 		self.addMessageToLog(message)
+		return True
 
 	#Adds a message to the message log
 	#(in)aMessage - The message to add to message log

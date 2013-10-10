@@ -14,8 +14,13 @@ irc = IrcConnection.newConnection()
 #Main Bot Loop ---------------------------------
 #-----------------------------------------------
 while True:
-   irc.respondToServerMessages()
-   
+   connectionStillUp = irc.respondToServerMessages()
+ 
+   #Reconnect if needed 
+   if not connectionStillUp:
+      irc = IrcConnection.newConnection()
+      continue
+ 
    #Command Modules
    baseModule.main(irc)
    redditModule.main(irc)
