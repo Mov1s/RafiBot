@@ -1,54 +1,47 @@
 from ircBase import *
-import re
 from random import randint
 from datetime import date
+import re
 
 #Define the images to link
-fourdeezImages = []
-fourdeezImages.append('https://www.dropbox.com/s/zxzd30en1g6w0gk/Fourdeeezzzz%20Ape.png')
-fourdeezImages.append('https://www.dropbox.com/s/8yvynoqzgflm053/Fourdeeezzzz%20Busey.png')
-fourdeezImages.append('https://www.dropbox.com/s/a9vbs9x9935z71q/Fourdeeezzzz%20Cagerous.png')
-fourdeezImages.append('https://www.dropbox.com/s/aped6xf3w0d3q2i/Fourdeeezzzz%20Horses.png')
-fourdeezImages.append('https://www.dropbox.com/s/3swjsjenkfazso7/Fourdeeezzzz%20Loude%20Noises.png')
-fourdeezImages.append('https://www.dropbox.com/s/bo6inwweldfz6j3/Fourdeeezzzz%20Rambo.png')
-fourdeezImages.append('https://www.dropbox.com/s/49f0uuvchrp44cj/Fourdeeezzzz%20Woods.png')
-fourdeezImages.append('https://www.dropbox.com/s/7xcqzfkgyc3qghn/Fourdeezz%20Bear.png')
-fourdeezImages.append('https://www.dropbox.com/s/haq780vh93xv97i/Fourdeezz%20Hippo.png')
-fourdeezImages.append('http://i.imgur.com/CA8U1m1.gif')
+fourdeez_images = []
+fourdeez_images.append('https://www.dropbox.com/s/zxzd30en1g6w0gk/Fourdeeezzzz%20Ape.png')
+fourdeez_images.append('https://www.dropbox.com/s/8yvynoqzgflm053/Fourdeeezzzz%20Busey.png')
+fourdeez_images.append('https://www.dropbox.com/s/a9vbs9x9935z71q/Fourdeeezzzz%20Cagerous.png')
+fourdeez_images.append('https://www.dropbox.com/s/aped6xf3w0d3q2i/Fourdeeezzzz%20Horses.png')
+fourdeez_images.append('https://www.dropbox.com/s/3swjsjenkfazso7/Fourdeeezzzz%20Loude%20Noises.png')
+fourdeez_images.append('https://www.dropbox.com/s/bo6inwweldfz6j3/Fourdeeezzzz%20Rambo.png')
+fourdeez_images.append('https://www.dropbox.com/s/49f0uuvchrp44cj/Fourdeeezzzz%20Woods.png')
+fourdeez_images.append('https://www.dropbox.com/s/7xcqzfkgyc3qghn/Fourdeezz%20Bear.png')
+fourdeez_images.append('https://www.dropbox.com/s/haq780vh93xv97i/Fourdeezz%20Hippo.png')
+fourdeez_images.append('http://i.imgur.com/CA8U1m1.gif')
 
-#Checks to see if a message contains 'tonight' but not 'tonight tonight'
-def didFuckUpTonightTonight(message):
-  ttExpression = re.compile('.*(tonight)( *)(tonight).*', re.IGNORECASE)
-  tExpression = re.compile('.*(tonight).*', re.IGNORECASE)
-  tonightTonightMatch = ttExpression.match(message)
-  tonightMatch = tExpression.match(message)
+class FourdeezModule(IrcModule):
 
-  #Return true if they say 'tonight' and not 'tonight tonight'  
-  if tonightMatch and not tonightTonightMatch:
-    return True
-  else:
-    return False
+  def defineResponses(self):
+    self.respondToRegex('.*(four|40).*', self.fourdeez_response)
+    self.respondToIdleTime(600, self.fourdeez_images_response)
+    self.respondToRegex('.*(tonight).*', self.correct_tonight_response)
 
-def main(irc):
-  message = irc.lastMessage()
-  messages = []
+  def fourdeez_response(self, aMessage, **extraArgs):
+    if today_is_thursday:
+      return aMessage.newResponseMessage("FOURDEEEEZZZZ!!")
 
-  fourdeezMentioned = message.containsKeyword('four') or message.containsKeyword('40')
+  def fourdeez_images_response(self, **extraArgs):
+    if today_is_thursday:
+      image_index = randint(0, len(fourdeez_images) - 1)
+      return IrcMessage.newRoomMessage('FOURDEEZ!! ' + fourdeez_images[image_index])
+
+  def correct_tonight_response(self, aMessage, **extraArgs):
+    if today_is_thursday:
+      tt_expression = re.compile('.*(tonight)( *)(tonight).*', re.IGNORECASE)
+      tonight_tonight_match = tt_expression.match(aMessage.body)
+
+      #Return true if they say 'tonight' and not 'tonight tonight'  
+      if not tonight_tonight_match:
+        return aMessage.newResponseMessage('tonight tonight*')
+
+def today_is_thursday():
   weekday = date.today().weekday()
+  return True if weekday == 3 else False
 
-  #Only do things on Thursdays
-  if(weekday == 3):
-    #Randomly link fourdeez images
-    if message.isPing:
-      shouldShow = randint(0, 20) == 0
-      if shouldShow:
-        imageIndex = randint(0, len(fourdeezImages) - 1)
-        messages.append(message.newRoomMessage('FOURDEEZ!! ' + fourdeezImages[imageIndex]))
-
-    #Check some message bodys
-    if message.body and fourdeezMentioned:
-      messages.append(message.newResponseMessage('FOURDDEEEEZZZZ!!'))
-    if message.body and didFuckUpTonightTonight(message.body):
-      messages.append(message.newResponseMessage('tonight tonight*'))
-
-    irc.sendMessages(messages)
