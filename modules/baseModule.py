@@ -113,7 +113,7 @@ def main(irc):
 		irc.sendMessages(messages)
 
 		#Call Rafi Git Update Script
-		subprocess.call(["./rafiUpdater", "development"])
+		subprocess.call(["./rafiUpdater", "master"])
 
 		#Restart Rafi
 		os.execl(sys.executable, *([sys.executable]+sys.argv))
