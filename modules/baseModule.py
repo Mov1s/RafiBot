@@ -1,28 +1,122 @@
 # -*- coding: utf8 -*- 
 from ircBase import *
 from random import randint
-import sys
+import MySQLdb as mdb
+import ConfigParser
+import os, sys, subprocess, time, datetime
+
+config = ConfigParser.SafeConfigParser()
+config.read('configs/ircBase.conf')
+
+CONST_DB_USER = config.get('MySql', 'username')
+CONST_DB_PASSWORD = config.get('MySql', 'password')
 
 #Check if a message is requesting room history
+#(in)aMessage - The message to check for the history query
+#(out) The groups of the RegEx that matched
 def getHistoryQuery(aMessage):
 	expression = re.compile('(history|hist) (me|ma)(.*)', re.IGNORECASE)
 	match = expression.match(aMessage.body)
 	return match
 
+#Create a new user in the database
+#(in)aFirstName - The first name of the user to create
+#(in)aLastName - The last name of the user to create
+#(in)anEmail - The email address of the user to create
+#(in)aMobileNumber - The mobile number of the user to create
+#(out) The message to send to the irc room
+def createUser(aFirstName, aLastName, anEmail, aMobileNumber):
+	conn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'rafiBot')
+	cursor = conn.cursor()
+
+	#Don't allow overlap of email address or phone number
+	cursor.execute("SELECT id FROM Users u WHERE u.email = %s OR u.mobileNumber = %s", (anEmail, aMobileNumber))
+	if cursor.rowcount != 0:
+		return 'This mobile number or email is already in use'
+
+	#Add the user
+	creationTime = time.strftime('%Y-%m-%d %H:%M:%S')
+	cursor.execute('INSERT INTO Users (firstName, lastName, email, mobileNumber, creationDate) VALUES (%s, %s, %s, %s, %s)', (aFirstName, aLastName, anEmail, aMobileNumber, creationTime))
+	conn.commit()
+
+	return aFirstName +  ' added!'
+
+#Create a new nick or alias for a user
+#(in)anEmail - The email address of the user to add the nick or alias for
+#(in)aNick - The nick or alias you would like associate with a user
+#(out) The message to send to the irc room
+def addNickForEmail(anEmail, aNick):
+	conn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'rafiBot')
+	cursor = conn.cursor()
+
+	#Don't allow overlap of nicks
+	cursor.execute("SELECT id FROM Nicks n WHERE n.nick = %s", (aNick))
+	if cursor.rowcount != 0:
+		return 'This nick is already in use'
+	
+	#Get the user to link the nick to
+	userId = userFirstName  = ''
+	cursor.execute("SELECT id, firstName FROM Users u WHERE u.email = %s", (anEmail))
+	if cursor.rowcount == 0:
+		return 'There is no user with this email address'
+	else:
+		result = cursor.fetchall()
+		userId = result[0][0]
+		userFirstName = result[0][1]
+
+	#Add the nick
+	creationTime = time.strftime('%Y-%m-%d %H:%M:%S')
+	cursor.execute('INSERT INTO Nicks (nick, userId, creationDate) VALUES (%s, %s, %s)', (aNick, userId, creationTime))
+	conn.commit()
+
+	return aNick +  ' linked to ' + userFirstName + "!"
+
+#List the contact info for a nick or name
+#(in)theSearchString - The text to search for as the user name or nick
+#(out) The message to send to the irc room
+def informationForUser(theSearchString):
+	conn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'rafiBot')
+	cursor = conn.cursor()
+
+	#Get the user
+	cursor.execute("SELECT n.nick, u.firstName, u.lastName, u.email, u.mobileNumber, unix_timestamp(u.creationDate)  FROM Nicks n LEFT JOIN Users u ON u.id = n.userId WHERE n.nick = %s or u.firstName = %s or u.lastName = %s", (theSearchString, theSearchString, theSearchString))
+	if cursor.rowcount == 0:
+		return 'No user was found for this string'
+	else:
+		result = cursor.fetchall()
+		now = time.time()
+		userNick = result[0][0]
+		userFirstName = result[0][1]
+		userLastName = result[0][2]
+		userEmail = result[0][3]
+		userNumber = result[0][4]
+		userSince = now - result[0][5]
+		return userFirstName + " " + userLastName + ", user for " + str(datetime.timedelta(seconds = int(userSince))) + ", " + userEmail + " " + userNumber
+
+#Main module loop
 def main(irc):
 	message = irc.lastMessage()
 	historyRequest = getHistoryQuery(message) if message.body != None else None
+	messages = []
 
 	#Quit when told to
 	if message.botCommand == 'quit':
-		ircMessage().newRoomMessage(irc, 'Later fags').send()
-		ircMessage().newServerMessage(irc, 'QUIT').send()
+		messages.append(IrcMessage.newRoomMessage('Later fags'))
+		messages.append(IrcMessage.newServerMessage('QUIT'))
+		irc.sendMessages(messages)
+
 		sys.exit()
 	#Quit with update message
 	elif message.botCommand == 'update':
-		ircMessage().newRoomMessage(irc, 'Brb, updating').send()
-		ircMessage().newServerMessage(irc, 'QUIT').send()
-		sys.exit()
+		messages.append(IrcMessage.newRoomMessage('Brb, updating'))
+		messages.append(IrcMessage.newServerMessage('QUIT'))
+		irc.sendMessages(messages)
+
+		#Call Rafi Git Update Script
+		subprocess.call(["./rafiUpdater", "master"])
+
+		#Restart Rafi
+		os.execl(sys.executable, *([sys.executable]+sys.argv))
 	#Print the last 10 room messages
 	elif historyRequest:
 		#Determine how many messages to show
@@ -46,10 +140,10 @@ def main(irc):
 		#PM the requested message history
 		for historyMessage in reversed(historyMessages):
 			sendingMessageBody = '{0}: {1}'.format(historyMessage.sendingNick, historyMessage.body)
-			ircMessage().newPrivateMessage(irc, sendingMessageBody, message.sendingNick, offRecord = True).send()
+			messages.append(IrcMessage.newPrivateMessage(sendingMessageBody, message.sendingNick, offRecord = True))
 	#Print Rafi's GitHub if someone mentions it
 	elif message.containsKeywords(['git', irc.nick]):
-		ircMessage().newRoomMessage(irc, 'My source is at https://github.com/Mov1s/RafiBot.git').send()
+		messages.append(message.newResponseMessage('My source is at https://github.com/Mov1s/RafiBot.git'))
 	#Print random Rafi quotes whenever rafi is mentioned
 	elif message.containsKeyword(irc.nick) and not message.isBotCommand:
 		rafiQuotes = []
@@ -69,9 +163,42 @@ def main(irc):
 		rafiQuotes.append("Sometimes when I puke I shit.")
 
 		quoteIndex = randint(0, len(rafiQuotes) - 1)
-		ircMessage().newRoomMessage(irc, rafiQuotes[quoteIndex]).send()
+		messages.append(message.newResponseMessage(rafiQuotes[quoteIndex]))
 	#Print 'Bewbs' if there has been no room activity for 30 min
 	elif irc.noRoomActivityForTime(1800):
-		ircMessage().newRoomMessage(irc, 'Bewbs').send()
+		messages.append(IrcMessage.newRoomMessage('Bewbs'))
+	#Print the shiva blast if someone says shiva
 	elif message.containsKeyword('shiva'):
-		ircMessage().newRoomMessage(irc, 'SHIVAKAMINISOMAKANDAKRAAAAAAAM!').send()
+		messages.append(IrcMessage.newRoomMessage('SHIVAKAMINISOMAKANDAKRAAAAAAAM!'))
+	#Register a new user
+	elif message.botCommand == 'adduser':
+		response = ''
+		if len(message.botCommandArguments) < 4:
+			response = 'syntax is "adduser <FirstName> <LastName> <Email> <MobileNumber>"'
+		else:
+			args = message.botCommandArguments
+			response = createUser(args[0], args[1], args[2], args[3])
+	
+		messages.append(message.newResponseMessage(response))
+	#Add a new alias or nick for a user
+	elif message.botCommand == 'addnick':
+		response = ''
+		if len(message.botCommandArguments) < 2:
+			response = 'syntax is "addnick <Email> <Nick>"'
+		else:
+			args = message.botCommandArguments
+			response = addNickForEmail(args[0], args[1])
+	
+		messages.append(message.newResponseMessage(response))
+	#Return user details for a search string
+	elif message.botCommand == 'userinfo':
+		response = ''
+		if len(message.botCommandArguments) < 1:
+			response = 'syntax is "userinfo <SearchString>"'
+		else:
+			args = message.botCommandArguments
+			response = informationForUser(args[0])
+	
+		messages.append(message.newResponseMessage(response))
+
+	irc.sendMessages(messages)

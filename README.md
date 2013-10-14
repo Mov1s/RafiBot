@@ -2,16 +2,30 @@
 
 RafiBot was designed to be easily extendable so that we could make him do anything that Python can do.  Please add to the framework I've made for Rafi and create new modules for him.
 
+## Installation
+
+After cloning this repo you are almost ready to run Rafi!  First, make sure you have the correct software on your system.  If you are running Arch linux then you can run the installation script found at `installation/arch_install.sh` to install all the necessary packages needed to run Rafi.  If you plan on not using any of the modules included with Rafi and only want to write your own then all you need is python 2.7.x
+
+* Python 2.7.x
+* Python MySql module (needed for the apTrackingModule and baseModule)
+* Python BeautifulSoup4 module (needed for several modules)
+* MySql (needed for the apTrackingModule and baseModule)
+* Of course git :P
+
+After these are installed copy the configuration file templates found in `installation/configTemplates` to a folder named `configs` in Rafi's root folder.  These configuration files are templates and will need to be edited for your specific environment before Rafi will run properly.
+Now you are good to go!  Just run `python2 ./rafi.py` and watch him rage!
+
 ## For the future
 
 Rafi's current capabilities are pretty limited but I would like to continue to develop him.  In the future I would like to see a few things that will help make our community development of him easier.
  
-* Automatic deployment
-    * Rafi currently responds to the update command, but all it does is make him quit with an update message so that I can restart him with new code.
-    * I would like this eventually to make him quit, pull the latest code from git and then start himself back up, so that anyone can make changes and tell him to use them imediatley instead of having me restart him.
 * Database migration
-    * I intend to use a local mySQL database in some of the future modules, I would like to make a way for you guys to do the same.
-    * This means you need a way to create your own database schema and have him apply it during deployment.
+    * MySQL is used in a few modules and migration files have been written to apply the database changes needed to run modules but they are not automatic
+    * This needs to be automated and have him apply the schema changes during deployment.
+
+* Update recovery
+    * If the update process fails Rafi fails to rejoin, meaning the error needs to be manually fixed and then he can be relaunched
+    * It would be great if Rafi would revert the update and rejoin the server alerting users that the update failed
 
 ## Building a module
 
@@ -32,7 +46,7 @@ After your module is finished add it to Rafi's main loop in the block with the o
 The ircMessage class provides a number of simple cases that represent IRC activity that your module can respond to.  Feel free to add more.  Examples of all of the cases are in the baseModule module.
 The ircConnection class has the method `noRoomActivityForTime(timeInSeconds)` that can also be used to do something if the room has been idle for a certain period of time.
 
-`message.isBotCommand`  This case is true if the IRC activity that the module is responding to is a command sent to Rafi.  Commands are in the format `!RafiBot <command>`.  The bot command that this message contains can be accessed with `message.botCommand` and used to determine the course of action to take.
+`message.isBotCommand`  This case is true if the IRC activity that the module is responding to is a command sent to Rafi.  Commands are in the format `!RafiBot <command>`.  The bot command that this message contains can be accessed with `message.botCommand` and used to determine the course of action to take.  If there are additional arguments to the command following the bot command they can be found in `message.botCommandArguments`.
 
 `message.containsKeyword(aKeyword)` This case is true if the IRC activity that the module is responding to is a message containing a keyword.  This message doesn't need to be directed at Rafi and will also respond if the keyword is part of another word.  So if you make Rafi respond to the letter "a" any word with "a" in it will trigger this case.
 
@@ -54,13 +68,20 @@ The ircConnection class has the method `noRoomActivityForTime(timeInSeconds)` th
 
 ### Responding to IRC activity
 
-Once a case is satisfied you will want Rafi to do something.  To send a message back to the server you must first construct an `ircMessage` object.  To construct a new message object you should use one of the constructor methods in the `ircMessage` class.
+Once a case is satisfied you will want Rafi to do something.  To send a message back to the server you must first construct an `IrcMessage` object.  To construct a new message object as a reply to a recieved message you can use:
 
-`ircMessage().newRoomMessage(anIrcConnection, theMessageBody, aRoom = None, offRecord = False)`  This will construct a new message to be sent to a room.  You must pass in the `ircConnection` object you want the message to be sent out on and the body of the message as you want it to appear in the room.  The room to send the message to is optional, if you do not specify one it sends the message to the default room of the passed in `ircConnection`.  You can also specify if you would like the message kept off the record.  Off the record messages will not be logged by Rafi and therefore will not be visible when requesting the room history.
+    ircMessage.newResponseMessage(theMessageBody)
 
-`ircMessage().newPrivateMessage(anIrcConnection, theMessageBody, aRecievingNick, offRecord = True)`  This will construct a new message to be sent to a specific nick.  You must pass in the `ircConnection` object you want the message to be sent out on, the body of the message, and the nick you would like to recieve the message.  You can also specify if you would like the message on the record, by default private messages are off the record and therefore not logged.
+This will construct a new message that is either a PM reply when the recieved message is a PM or a room reply when the recieved message is anything but a PM.  Most of the time this will be sufficent, but if you want more fine grained control over what type of message to create and where or who to send it to you can use these constructor methods in the `IrcMessage` class.
 
-`ircMessage().newServerMessage(anIrcConnection, theMessageBody, offRecord = True)`  This will construct a new message to be sent to the server.  You must pass in the `ircConnection` object you want the message to be sent out on, and the body of the message.  This message is used to send commands like QUIT to the server.  By default server commands are off the record, but you can choose to log it if you would like.
+`IrcMessage.newRoomMessage(theMessageBody, aRoom = None, offRecord = False)`  This will construct a new message to be sent to a room.  You must pass in the body of the message as you want it to appear in the room.  The room to send the message to is optional, if you do not specify one it sends the message to the default room of the passed in `ircConnection`.  You can also specify if you would like the message kept off the record.  Off the record messages will not be logged by Rafi and therefore will not be visible when requesting the room history.
 
-After an `ircMessage` object is constructed you can send it by useing the `message.send()` method.  This will send the message out on the `ircConnection` that was passed in during the message creation.  So to construct and send a message to the room you would do something like this: `ircMessage().newRoomMessage(irc, 'My first message').send()`
-More examples of different message types can be found in the baseModule module.
+`IrcMessage.newPrivateMessage(theMessageBody, aRecievingNick, offRecord = True)`  This will construct a new message to be sent to a specific nick.  You must pass in the body of the message, and the nick you would like to recieve the message.  You can also specify if you would like the message on the record, by default private messages are off the record and therefore not logged.
+
+`IrcMessage.newServerMessage(theMessageBody, offRecord = True)`  This will construct a new message to be sent to the server.  You must pass in the body of the message.  This message is used to send commands like QUIT to the server.  By default server commands are off the record, but you can choose to log it if you would like.
+
+After an `IrcMessage` object is constructed you can send it by useing the `ircConnection.sendMessage()` method.  This will send the message out on the given `IrcConnection`.  So to construct and send a message to the room you would do something like this:
+
+    ircConnection.sendMessage(IrcMessage.newRoomMessage('My first message'))
+
+More examples of the different message types can be found in the `baseModule` module.

@@ -3,9 +3,16 @@ from ircBase import *
 import urllib2
 import urllib
 from bs4 import BeautifulSoup
+import ConfigParser
+import json
+
+config = ConfigParser.SafeConfigParser()
+config.read('configs/weatherModule.conf')
+
+CONST_API_KEY = config.get('WeatherModule', 'apikey')
 
 
-def getQuery(message):
+def getTemperatureQuery(message):
 	expression = re.compile('(temperature|temp)( me| ma)? (.*)', re.IGNORECASE)
 	match = expression.match(message)
 	if match:
@@ -13,37 +20,72 @@ def getQuery(message):
 	else:
 		return None	
 
+def getForecastQuery(message):
+	expression = re.compile('(forecast|fore)( me| ma)? (.*)', re.IGNORECASE)
+	match = expression.match(message)
+	if match:
+		return match.group(3)
+	else:
+		return None	
+
+def currentCondition(query):
+	#Request Weather Underground for weather 
+	query = query.replace(',', '%2C')
+	query = query.replace(' ', '+')
+	url = "http://api.wunderground.com/api/" + CONST_API_KEY + "/geolookup/conditions/q/" + query + ".json" 
+	print(url)
+	f = urllib2.urlopen(url)
+	json_string = f.read()
+	parsed_json = json.loads(json_string)
+	try:	
+		location = parsed_json['current_observation']['display_location']['full']
+		temp_f = parsed_json['current_observation']['temp_f']
+		feelslike_f = parsed_json['current_observation']['feelslike_f']
+		weather = parsed_json['current_observation']['weather']
+
+		message = "It is " + str(temp_f) + "F and " + weather + ", Feels Like " + str(feelslike_f) + "F in " + location
+		return message
+	except:
+		message = "Multiple results returned; please use a more specific search string."	
+		return message
+
+def forecast(query, irc, sendingNick):
+	#Request Weather Underground for weather 
+	query = query.replace(',', '%2C')
+	query = query.replace(' ', '+')
+	url = "http://api.wunderground.com/api/" + CONST_API_KEY + "/geolookup/forecast/q/" + query + ".json" 
+	print(url)
+	f = urllib2.urlopen(url)
+	json_string = f.read()
+	parsed_json = json.loads(json_string)
+	
+	try:	
+		for days, item in enumerate(parsed_json['forecast']['txt_forecast']['forecastday']):
+			day = item['title']
+			conditions = item['fcttext']
+
+			newMessage = IrcMessage.newPrivateMessage(day + ": " + conditions, sendingNick, offRecord = True)
+			irc.sendMessage(newMessage)
+	
+		return message
+	except:
+		message = "Multiple results returned; please use a more specific search string."	
+		newMessage = IrcMessage.newPrivateMessage(message, sendingNick, offRecord = True)
+		irc.sendMessage(newMessage)
+		return message
+
+
 def main(irc):
  	message = irc.lastMessage()
 	
 	if message.body != None:
-		query = getQuery(message.body)
+		query = getTemperatureQuery(message.body)
 		#Temperature command
 		if query:
-			try:
-				#Request Weather Underground for weather 
-				query = query.replace(',', '%2C')
-				query = query.replace(' ', '+')
-				url = "http://www.wunderground.com/cgi-bin/findweather/hdfForecast?query=" + query 
-				responseBodyString = urllib2.urlopen(url).read()
+			newMessage = IrcMessage.newRoomMessage(currentCondition(query))
+			irc.sendMessage(newMessage)
 
-				soup = BeautifulSoup(responseBodyString)
-
-				#Find Current Temperature Span
-				temperatureSpan = soup.find("span", {"id": "rapidtemp"})
-				temperatureSpan = temperatureSpan.find("span", {"class": "b"})
-
-				#Find Feels Like Temperature
-				feelsLike = soup.find("div", {"id": "tempFeel"})
-				feelsLike = feelsLike.find("span", {"class": "b"})
-
-				#Find Current Condition
-				currentCondition = soup.find("div", {"id": "curCond"})
-
-				#Find Location
-				locationName = soup.find("h1", {"id": "locationName"})
-				#locationName = locationName.find("span", {"class": "b"})
-
-				ircMessage().newRoomMessage(irc, "It is " + temperatureSpan.string + "F and " + currentCondition.string + ", Feels Like " + feelsLike.string + "F in " + locationName.string).send()
-			except:
-				return
+		query = getForecastQuery(message.body)
+		#Temperature command
+		if query:
+			forecast(query, irc, message.sendingNick)

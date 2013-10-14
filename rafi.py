@@ -7,14 +7,20 @@ import modules.imageModule as imageModule
 import modules.ircCommandModule as ircCommandModule
 import modules.smsModule as smsModule
 import modules.apTrackingModule as apTrackingModule
+import modules.fourdeezModule as fourdeezModule
 
-irc = ircConnection().newConnection()
+irc = IrcConnection.newConnection()
 
 #Main Bot Loop ---------------------------------
 #-----------------------------------------------
 while True:
-   irc.respondToServerMessages()
-   
+   connectionStillUp = irc.respondToServerMessages()
+ 
+   #Reconnect if needed 
+   if not connectionStillUp:
+      irc = IrcConnection.newConnection()
+      continue
+ 
    #Command Modules
    baseModule.main(irc)
    redditModule.main(irc)
@@ -23,5 +29,6 @@ while True:
    imageModule.main(irc)
    smsModule.main(irc)
    apTrackingModule.main(irc)
+   fourdeezModule.main(irc)
 
    print irc.lastMessage().rawMessage
