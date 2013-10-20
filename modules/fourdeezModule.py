@@ -24,16 +24,16 @@ class FourdeezModule(IrcModule):
     self.respondToRegex('.*(tonight).*', self.correct_tonight_response)
 
   def fourdeez_response(self, aMessage, **extraArgs):
-    if today_is_thursday:
+    if today_is_thursday():
       return aMessage.newResponseMessage("FOURDEEEEZZZZ!!")
 
   def fourdeez_images_response(self, **extraArgs):
-    if today_is_thursday:
+    if today_is_thursday():
       image_index = randint(0, len(fourdeez_images) - 1)
       return IrcMessage.newRoomMessage('FOURDEEZ!! ' + fourdeez_images[image_index])
 
   def correct_tonight_response(self, aMessage, **extraArgs):
-    if today_is_thursday:
+    if today_is_thursday():
       tt_expression = re.compile('.*(tonight)( *)(tonight).*', re.IGNORECASE)
       tonight_tonight_match = tt_expression.match(aMessage.body)
 

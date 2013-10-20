@@ -12,6 +12,18 @@ CONST_CONTACT = 2
 CONST_MESSAGE = 3
 
 
+class SmsModule(IrcModule):
+	def defineResponses(self):
+		contactList = getContactList()
+		self.respondToRegex('(text)(' + getContacts(contactList)  + ') (.*)', sendText)
+		#readEmail(contactList)
+
+#def sendText(message, **extra_args):
+#	print(extra_args['matchGroup'][1])
+#	print(extra_args['matchGroup'][2])
+#	
+#	sendMail(getContactList(), extra_args['matchGroup'][1], extra_args['matchGroup'][2])
+
 def extract_body(payload):
 	if isinstance(payload,str):
 		return payload
@@ -103,6 +115,17 @@ def getQuery(contactList, message, messagePart):
 	else:
 		return None
 	
+
+def sendText(message, **extra_args):
+	contactList = getContactList()
+	contact = extra_args['matchGroup'][1]
+	contact = contact.strip()
+	text = extra_args['matchGroup'][2]
+	try:
+		sendMail(contactList,contact,"<" + message.sendingNick + "> " + text)
+		return message.newResponseMessage("Text message sent to " + contact)
+	except:
+		return
 
 def main(irc):
  	message = irc.lastMessage()
