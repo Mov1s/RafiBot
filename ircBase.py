@@ -69,7 +69,8 @@ class IrcConnection():
         message = IrcMessage.newMessageFromRawMessage(message)
         if message.isPing:
             self.sendPongForPing(message)
-        self.addMessageToLog(message)
+        else:
+						self.addMessageToLog(message)
         return True
 
     def addMessageToLog(self, aMessage):
