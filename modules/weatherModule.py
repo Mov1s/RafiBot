@@ -14,7 +14,8 @@ CONST_API_KEY = config.get('WeatherModule', 'apiKey')
 class WeatherModule(IrcModule):
 	def defineResponses(self):
 		self.respondToRegex('(temperature|temp)( me| ma)? (.*)', currentCondition)
-		#self.respondToRegex('(forecast|fore)( me| ma)? (.*)', forecast)
+		self.respondToRegex('(forecast|fore)( me| ma)? (.*)', forecast)
+
 
 def currentCondition(message, **extra_args):
 	#Request Weather Underground for weather 
@@ -22,7 +23,6 @@ def currentCondition(message, **extra_args):
 	query = query.replace(',', '%2C')
 	query = query.replace(' ', '+')
 	url = "http://api.wunderground.com/api/" + CONST_API_KEY + "/geolookup/conditions/q/" + query + ".json" 
-	print(url)
 	f = urllib2.urlopen(url)
 	json_string = f.read()
 	parsed_json = json.loads(json_string)
@@ -38,44 +38,26 @@ def currentCondition(message, **extra_args):
 		response = "Multiple results returned; please use a more specific search string."	
 		return message.newResponseMessage(response)
 
-#def forecast(message, **extra_args):
-#	#Request Weather Underground for weather
-#	query = extra_args['matchGroup'][2] 
-#	query = query.replace(',', '%2C')
-#	query = query.replace(' ', '+')
-#	url = "http://api.wunderground.com/api/" + CONST_API_KEY + "/geolookup/forecast/q/" + query + ".json" 
-#	print(url)
-#	f = urllib2.urlopen(url)
-#	json_string = f.read()
-#	parsed_json = json.loads(json_string)
-#	
-#	try:	
-#		for days, item in enumerate(parsed_json['forecast']['txt_forecast']['forecastday']):
-#			day = item['title']
-#			conditions = item['fcttext']
-#
-#			newMessage = IrcMessage.newPrivateMessage(day + ": " + conditions, sendingNick, offRecord = True)
-#			irc.sendMessage(newMessage)
-#	
-#		return message
-#	except:
-#		message = "Multiple results returned; please use a more specific search string."	
-#		newMessage = IrcMessage.newPrivateMessage(message, sendingNick, offRecord = True)
-#		irc.sendMessage(newMessage)
-#		return message
-#
-#
-#def main(irc):
-#	message = irc.lastMessage()
-#
-#	if message.body != None:
-#		query = getTemperatureQuery(message.body)
-#		#Temperature command
-#		if query:
-#			newMessage = IrcMessage.newRoomMessage(currentCondition(query))
-#			irc.sendMessage(newMessage)
-#
-#		query = getForecastQuery(message.body)
-#		#Temperature command
-#		if query:
-#			forecast(query, irc, message.sendingNick)
+
+def forecast(message, **extra_args):
+	#Request Weather Underground for weather
+	query = extra_args['matchGroup'][2] 
+	query = query.replace(',', '%2C')
+	query = query.replace(' ', '+')
+	url = "http://api.wunderground.com/api/" + CONST_API_KEY + "/geolookup/forecast/q/" + query + ".json" 
+	f = urllib2.urlopen(url)
+	json_string = f.read()
+	parsed_json = json.loads(json_string)
+	messages = []	
+	
+	try:	
+		for days, item in enumerate(parsed_json['forecast']['txt_forecast']['forecastday']):
+			day = item['title']
+			conditions = item['fcttext']
+
+			messages.append(IrcMessage.newPrivateMessage(day + ": " + conditions, message.sendingNick, offRecord = True))
+	
+		return messages
+	except:
+		messages.append(IrcMessage.newPrivateMessage("Multiple results returned; please use a more specific search string.", sendingNick, offRecord = True))
+		return messages
