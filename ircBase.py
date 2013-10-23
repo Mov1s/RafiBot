@@ -78,7 +78,7 @@ class IrcConnection():
         self.messageLog.append(aMessage)
         if not aMessage.isPing:
             self.lastMessageTimestamp = time.time()
-        if len(self.messageLog) > 20:
+        if len(self.messageLog) > 40:
             del self.messageLog[0]
 
     def lastMessage(self):
@@ -250,13 +250,15 @@ class IrcModule:
         self.ircBot = None
         self.regexActions = {}
         self.idleActions = {}
+        self.botCommandActions = {}
         self.defineResponses()
 
     def do(self, someMessage):
         """Evaluate a message against all of the filters and return a list of messages."""
         regexResponses = self.evaluateRegexes(someMessage)
         idleResponses = self.evaluateIdleTimes()
-        return regexResponses + idleResponses
+        botCommandResponses = self.evaluateBotCommands(someMessage)
+        return regexResponses + idleResponses + botCommandResponses
 
     def defineResponses():
         """Define the filters this module responds too.  Override in subclasses."""
@@ -272,7 +274,7 @@ class IrcModule:
         responses = []
         for regex, action in self.regexActions.iteritems():
             matchGroup = self.evaluateMessageAgainstRegex(regex, someMessage.body)
-            if matchGroup:
+            if matchGroup != None:
                 messages = action(someMessage, matchGroup=matchGroup)
                 if isinstance(messages, list):
                    responses = responses + messages
@@ -292,6 +294,23 @@ class IrcModule:
                     responses.append(messages)
         return responses
 
+    def evaluateBotCommands(self, someMessage):
+        """Check all of the bot command filters and return a list of messages."""
+        #Return imediatley if the message is not a bot command
+        if not someMessage.isBotCommand:
+            return []
+
+        #Test the message against each bot command filter in this module
+        responses = []
+        for botCommand, action in self.botCommandActions.iteritems():
+            if botCommand == someMessage.botCommand:
+                messages = action(someMessage)
+                if isinstance(messages, list):
+                    responses = responses + messages
+                elif messages:
+                    responses.append(messages)
+        return responses
+
     def evaluateMessageAgainstRegex(self, aRegex, aMessageBody):
         """Perform a regex on a message body and return an array of match parts."""
         expression = re.compile(aRegex, re.IGNORECASE)
@@ -305,6 +324,10 @@ class IrcModule:
     def respondToIdleTime(self, timeInSeconds, anAction):
         """Register an idle time to respond to and the action to perform."""
         self.idleActions[timeInSeconds] = anAction
+
+    def respondToBotCommand(self, aBotCommand, anAction):
+        """Register a bot command to respond to and the action to perform."""
+        self.botCommandActions[aBotCommand] = anAction
 
 
 class IrcBot(object):
