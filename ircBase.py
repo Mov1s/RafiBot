@@ -64,14 +64,14 @@ class IrcConnection():
 
         #Check if the connection is still up
         if len(message) == 0:
-          return False
+          return None
 
         message = IrcMessage.newMessageFromRawMessage(message)
         if message.isPing:
             self.sendPongForPing(message)
         else:
 						self.addMessageToLog(message)
-        return True
+        return message
 
     def addMessageToLog(self, aMessage):
         """Add a message to the message log."""
@@ -80,10 +80,6 @@ class IrcConnection():
             self.lastMessageTimestamp = time.time()
         if len(self.messageLog) > 40:
             del self.messageLog[0]
-
-    def lastMessage(self):
-        """Return the last recieved message."""
-        return self.messageLog[-1]
 
     def sendPongForPing(self, aPingMessage):
         """Send a PONG message message to the server when a PING is issued."""
@@ -357,16 +353,16 @@ class IrcBot(object):
     def run(self):
         """Start the bot responding to IRC activity."""
         while True:
-            connectionStillUp = self.irc.respondToServerMessages()
+            server_message = self.irc.respondToServerMessages()
 
             #Reconnect if needed
-            if not connectionStillUp:
+            if not server_message:
                 self.irc = IrcConnection.newConnection()
                 continue
 
             messages = []
             for module in self.modules:
-                messages = messages + module.do(self.irc.lastMessage())
+                messages = messages + module.do(server_message)
             self.irc.sendMessages(messages)
 
-            print self.irc.lastMessage().rawMessage
+            print server_message.rawMessage
