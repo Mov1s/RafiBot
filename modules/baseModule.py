@@ -151,6 +151,7 @@ def createUser(aFirstName, aLastName, anEmail, aMobileNumber):
   creationTime = time.strftime('%Y-%m-%d %H:%M:%S')
   cursor.execute('INSERT INTO Users (firstName, lastName, email, mobileNumber, creationDate) VALUES (%s, %s, %s, %s, %s)', (aFirstName, aLastName, anEmail, aMobileNumber, creationTime))
   conn.commit()
+  cursor.close()
 
   return aFirstName +  ' added!'
 
@@ -178,6 +179,7 @@ def addNickForEmail(anEmail, aNick):
   creationTime = time.strftime('%Y-%m-%d %H:%M:%S')
   cursor.execute('INSERT INTO Nicks (nick, userId, creationDate) VALUES (%s, %s, %s)', (aNick, userId, creationTime))
   conn.commit()
+  cursor.close()
 
   return aNick +  ' linked to ' + userFirstName + "!"
 
@@ -189,6 +191,7 @@ def informationForUser(theSearchString):
   #Get the user
   cursor.execute("SELECT n.nick, u.firstName, u.lastName, u.email, u.mobileNumber, unix_timestamp(u.creationDate)  FROM Nicks n LEFT JOIN Users u ON u.id = n.userId WHERE n.nick = %s or u.firstName = %s or u.lastName = %s", (theSearchString, theSearchString, theSearchString))
   if cursor.rowcount == 0:
+    cursor.close()
     return 'No user was found for this string'
   else:
     result = cursor.fetchall()
@@ -199,6 +202,7 @@ def informationForUser(theSearchString):
     userEmail = result[0][3]
     userNumber = result[0][4]
     userSince = now - result[0][5]
+    cursor.close()
     return userFirstName + " " + userLastName + ", user for " + str(datetime.timedelta(seconds = int(userSince))) + ", " + userEmail + " " + userNumber
 
 def random_rafi_quote():

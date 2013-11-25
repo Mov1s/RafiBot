@@ -360,9 +360,15 @@ class IrcBot(object):
                 self.irc = IrcConnection.newConnection()
                 continue
 
+            #Perform the module actions
             messages = []
             for module in self.modules:
                 messages = messages + module.do(server_message)
             self.irc.sendMessages(messages)
+
+            #Close the database connection
+            if self._databaseConnection:
+              self._databaseConnection.close()
+            self._databaseConnection = None
 
             print server_message.rawMessage

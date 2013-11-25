@@ -51,6 +51,7 @@ def startTrackingApForNick(aDatabaseConnection, aMessageNick):
   startTime = time.strftime('%Y-%m-%d %H:%M:%S')
   cursor.execute("INSERT INTO moduleApTracker.ApRecord (userId, startTime) VALUES (%s, %s)", (userId, startTime))
   aDatabaseConnection.commit()
+  cursor.close()
 
   return 'Bottoms up!'
 
@@ -81,6 +82,7 @@ def stopTrackingApForNick(aDatabaseConnection, aMessageNick):
     recordId = result[0][0]
     cursor.execute("UPDATE moduleApTracker.ApRecord SET endTime = %s, duration = %s WHERE id = %s", (endTime, duration, recordId))
     aDatabaseConnection.commit()
+    cursor.close()
 
     return 'That AP took you ' + str(datetime.timedelta(seconds = duration))
   else:
@@ -122,4 +124,5 @@ def getApStatsForNick(aDatabaseConnection, aMessageNick):
   if statMessage == '':
     statMessage = 'Nothing to report'
 
+  cursor.close()
   return statMessage
