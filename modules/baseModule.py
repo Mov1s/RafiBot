@@ -97,7 +97,9 @@ class BaseModule(IrcModule):
 
   def bewbs_response(self, **extra_args):
     """Respond with 'Bewbs'."""
-    return IrcMessage.newRoomMessage('Bewbs')
+    previousMessage = self.ircBot.irc.messageLog[-1]
+    if not message_is_bewbs(previousMessage):
+      return IrcMessage.newRoomMessage('Bewbs')
 
   def shiva_response(self, message, **extra_args):
     """Respond with shiva blast."""
@@ -226,3 +228,5 @@ def random_rafi_quote():
     quoteIndex = randint(0, len(rafiQuotes) - 1)
     return rafiQuotes[quoteIndex]
 
+def message_is_bewbs(aMessage):
+  return aMessage.body.find('Bewbs') != -1

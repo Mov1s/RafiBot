@@ -28,7 +28,9 @@ class FourdeezModule(IrcModule):
       return aMessage.newResponseMessage("FOURDEEEEZZZZ!!")
 
   def fourdeez_images_response(self, **extraArgs):
-    if today_is_thursday():
+    previousMessage = self.ircBot.irc.messageLog[-1]
+
+    if today_is_thursday() and not message_is_fourdeez_image(previousMessage):
       image_index = randint(0, len(fourdeez_images) - 1)
       return IrcMessage.newRoomMessage('FOURDEEZ!! ' + fourdeez_images[image_index])
 
@@ -44,4 +46,10 @@ class FourdeezModule(IrcModule):
 def today_is_thursday():
   weekday = date.today().weekday()
   return True if weekday == 3 else False
+
+def message_is_fourdeez_image(aMessage):
+  hasFourdeezText = aMessage.body.find('FOURDEEZ!! ') != -1
+  hasImageLink = aMessage.hasLinks
+  return hasFourdeezText and hasImageLink
+
 
