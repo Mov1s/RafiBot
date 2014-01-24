@@ -21,7 +21,7 @@ def doge_ma_response(message, **extra_args):
     response = "Current price: %s BTC or $%0.2f per 10000 DOGE with a BTC value of $%0.2f" % (doge,per10k,btc)
     return message.newResponseMessage(response)
 
-#Searches google images for query and returns a random link
+#Searches cryptsy and averages all of the latest doge transaction prices
 def get_cryptsy_query():
     try:
         url = CRYPTSY_API_URL
@@ -40,7 +40,8 @@ def get_cryptsy_query():
         return avg_price
     except:
         return 0
-    
+        
+#Gets the spot price for bitcoins from coinbase    
 def get_coinbase_query():
     try:
         url = COINBASE_API_URL
