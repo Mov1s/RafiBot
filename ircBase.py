@@ -64,26 +64,22 @@ class IrcConnection():
 
         #Check if the connection is still up
         if len(message) == 0:
-          return False
+          return None
 
         message = IrcMessage.newMessageFromRawMessage(message)
         if message.isPing:
             self.sendPongForPing(message)
-        else:
+        elif not message.isServerMessage and message.isRoomMessage:
 						self.addMessageToLog(message)
-        return True
+        return message
 
     def addMessageToLog(self, aMessage):
         """Add a message to the message log."""
         self.messageLog.append(aMessage)
         if not aMessage.isPing:
             self.lastMessageTimestamp = time.time()
-        if len(self.messageLog) > 20:
+        if len(self.messageLog) > 40:
             del self.messageLog[0]
-
-    def lastMessage(self):
-        """Return the last recieved message."""
-        return self.messageLog[-1]
 
     def sendPongForPing(self, aPingMessage):
         """Send a PONG message message to the server when a PING is issued."""
@@ -250,13 +246,15 @@ class IrcModule:
         self.ircBot = None
         self.regexActions = {}
         self.idleActions = {}
+        self.botCommandActions = {}
         self.defineResponses()
 
     def do(self, someMessage):
         """Evaluate a message against all of the filters and return a list of messages."""
         regexResponses = self.evaluateRegexes(someMessage)
         idleResponses = self.evaluateIdleTimes()
-        return regexResponses + idleResponses
+        botCommandResponses = self.evaluateBotCommands(someMessage)
+        return regexResponses + idleResponses + botCommandResponses
 
     def defineResponses():
         """Define the filters this module responds too.  Override in subclasses."""
@@ -272,7 +270,7 @@ class IrcModule:
         responses = []
         for regex, action in self.regexActions.iteritems():
             matchGroup = self.evaluateMessageAgainstRegex(regex, someMessage.body)
-            if matchGroup:
+            if matchGroup != None:
                 messages = action(someMessage, matchGroup=matchGroup)
                 if isinstance(messages, list):
                    responses = responses + messages
@@ -292,6 +290,23 @@ class IrcModule:
                     responses.append(messages)
         return responses
 
+    def evaluateBotCommands(self, someMessage):
+        """Check all of the bot command filters and return a list of messages."""
+        #Return imediatley if the message is not a bot command
+        if not someMessage.isBotCommand:
+            return []
+
+        #Test the message against each bot command filter in this module
+        responses = []
+        for botCommand, action in self.botCommandActions.iteritems():
+            if botCommand == someMessage.botCommand:
+                messages = action(someMessage)
+                if isinstance(messages, list):
+                    responses = responses + messages
+                elif messages:
+                    responses.append(messages)
+        return responses
+
     def evaluateMessageAgainstRegex(self, aRegex, aMessageBody):
         """Perform a regex on a message body and return an array of match parts."""
         expression = re.compile(aRegex, re.IGNORECASE)
@@ -305,6 +320,10 @@ class IrcModule:
     def respondToIdleTime(self, timeInSeconds, anAction):
         """Register an idle time to respond to and the action to perform."""
         self.idleActions[timeInSeconds] = anAction
+
+    def respondToBotCommand(self, aBotCommand, anAction):
+        """Register a bot command to respond to and the action to perform."""
+        self.botCommandActions[aBotCommand] = anAction
 
 
 class IrcBot(object):
@@ -334,16 +353,22 @@ class IrcBot(object):
     def run(self):
         """Start the bot responding to IRC activity."""
         while True:
-            connectionStillUp = self.irc.respondToServerMessages()
+            server_message = self.irc.respondToServerMessages()
 
             #Reconnect if needed
-            if not connectionStillUp:
+            if not server_message:
                 self.irc = IrcConnection.newConnection()
                 continue
 
+            #Perform the module actions
             messages = []
             for module in self.modules:
-                messages = messages + module.do(self.irc.lastMessage())
+                messages = messages + module.do(server_message)
             self.irc.sendMessages(messages)
 
-            print self.irc.lastMessage().rawMessage
+            #Close the database connection
+            if self._databaseConnection:
+              self._databaseConnection.close()
+            self._databaseConnection = None
+
+            print server_message.rawMessage
