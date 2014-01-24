@@ -59,5 +59,5 @@ def forecast(message, **extra_args):
 	
 		return messages
 	except:
-		messages.append(IrcMessage.newPrivateMessage("Multiple results returned; please use a more specific search string.", sendingNick, offRecord = True))
+		messages.append(IrcMessage.newPrivateMessage("Multiple results returned; please use a more specific search string.", message.sendingNick, offRecord = True))
 		return messages
