@@ -1,9 +1,12 @@
+import logging
 import socket
 import time
 import re
 import ConfigParser
 import MySQLdb as mdb
 from urlparse import urlparse
+
+logging.basicConfig(filename='modules.log', level=logging.ERROR)
 
 config = ConfigParser.SafeConfigParser()
 config.read('configs/ircBase.conf')
@@ -363,7 +366,12 @@ class IrcBot(object):
             #Perform the module actions
             messages = []
             for module in self.modules:
-                messages = messages + module.do(server_message)
+                try:
+                    messages = messages + module.do(server_message)
+                except:
+                    logging.exception(module.__class__.__name__)
+                    messageString = "Module Error: " + module.__class__.__name__
+                    messages.append(IrcMessage().newRoomMessage(messageString))
             self.irc.sendMessages(messages)
 
             #Close the database connection

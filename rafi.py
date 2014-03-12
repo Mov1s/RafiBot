@@ -7,6 +7,7 @@ import modules.weatherModule as weatherModule
 import modules.smsModule as smsModule
 import modules.baseModule as baseModule
 import modules.dogecoinModule as dogecoinModule
+import modules.errorLoggingModule as errorLoggingModule
 
 rafi = IrcBot()
 rafi.attachModule(imageModule.ImageModule())
@@ -17,4 +18,5 @@ rafi.attachModule(weatherModule.WeatherModule())
 rafi.attachModule(smsModule.SmsModule())
 rafi.attachModule(dogecoinModule.dogecoinModule())
 rafi.attachModule(baseModule.BaseModule())
+rafi.attachModule(errorLoggingModule.ErrorLoggingModule())
 rafi.run()
