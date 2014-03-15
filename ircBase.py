@@ -39,20 +39,24 @@ class IrcConnection():
     @staticmethod
     def newConnection(aNetwork = CONST_NETWORK, aPort = CONST_PORT, aRoom = CONST_ROOM, aNick = CONST_NICK):
         """Create and return an IRC connection using the constants at the top of the file."""
-        newConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        newConnection.connect((aNetwork, aPort))
-        print newConnection.recv(4096)
-        newConnection.send('NICK ' + aNick + '\r\n')
-        newConnection.send('USER ' + aNick + ' ' + aNick + ' ' + aNick + ' :Python IRC\r\n')
-        newConnection.send('JOIN ' + aRoom + '\r\n')
+        while True:
+            try:
+                newConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                newConnection.connect((aNetwork, aPort))
+                print newConnection.recv(4096)
+                newConnection.send('NICK ' + aNick + '\r\n')
+                newConnection.send('USER ' + aNick + ' ' + aNick + ' ' + aNick + ' :Python IRC\r\n')
+                newConnection.send('JOIN ' + aRoom + '\r\n')
 
-        aConnection = IrcConnection()
-        aConnection.connection = newConnection
-        aConnection.network = aNetwork
-        aConnection.port = aPort
-        aConnection.room = aRoom
-        aConnection.nick = aNick
-        return aConnection
+                aConnection = IrcConnection()
+                aConnection.connection = newConnection
+                aConnection.network = aNetwork
+                aConnection.port = aPort
+                aConnection.room = aRoom
+                aConnection.nick = aNick
+                return aConnection
+            except:
+                pass
 
     def respondToServerMessages(self):
         """Main message handler for an IRC connection.
@@ -222,8 +226,8 @@ class IrcMessage():
         spoofMessage.body = theMessageBody
         spoofMessage.isServerMessage = True
         spoofMessage.isOffRecord = offRecord
-        return spoofMessage 
-    
+        return spoofMessage
+
     def newResponseMessage(self, theMessageBody):
         """Create and return a new IrcMessage object that is a direct response to this message.
 
@@ -237,7 +241,7 @@ class IrcMessage():
         else:
             newMessage = IrcMessage.newRoomMessage(theMessageBody, self.recievingRoom)
         return newMessage
-    
+
 
 class IrcModule:
     """Class representing an IRC module.
