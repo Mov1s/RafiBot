@@ -8,6 +8,7 @@ import modules.smsModule as smsModule
 import modules.baseModule as baseModule
 import modules.dogecoinModule as dogecoinModule
 import modules.errorLoggingModule as errorLoggingModule
+import modules.androidServiceModule as androidServiceModule
 
 rafi = IrcBot()
 rafi.attachModule(imageModule.ImageModule())
@@ -19,4 +20,5 @@ rafi.attachModule(smsModule.SmsModule())
 rafi.attachModule(dogecoinModule.dogecoinModule())
 rafi.attachModule(baseModule.BaseModule())
 rafi.attachModule(errorLoggingModule.ErrorLoggingModule())
+rafi.attachModule(androidServiceModule.AndroidServiceModule())
 rafi.run()
