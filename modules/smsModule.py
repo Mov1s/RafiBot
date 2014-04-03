@@ -12,16 +12,34 @@ CONST_CONTACT = 2
 CONST_MESSAGE = 3
 
 
-def extract_body(payload):
-	if isinstance(payload,str):
-		return payload
-	else:
-		return '\n'.join([extract_body(part.get_payload()) for part in payload])
+class SmsModule(IrcModule):
+	def defineResponses(self):
+		contactList = getContactList()
+		self.respondToRegex('(text)(' + getContacts(contactList)  + ') (.*)', sendText)
+		self.respondToRegex('(contact list)', printContactList)
+		self.respondToIdleTime(0, readEmail)
 
 
-
-def readEmail (irc, contactList):
+def sendText(message, **extra_args):
+	contactList = getContactList()
+	contact = extra_args['matchGroup'][1]
+	contact = contact.strip()
+	text = extra_args['matchGroup'][2]
 	try:
+		sendMail(contactList,contact,"<" + message.sendingNick + "> " + text)
+		return message.newResponseMessage("Text message sent to " + contact)
+	except:
+		return
+
+
+def printContactList(message, **extra_args):
+	return IrcMessage.newRoomMessage("Contacts in system:" + getContacts(getContactList()).replace("|",","))		
+
+
+def readEmail (**extra_args):
+	try:
+		messages = []
+		contactList = getContactList()
 		conn = imaplib.IMAP4_SSL("imap.gmail.com", 993)
 		conn.login(contactList[0],contactList[1])
 		conn.select()
@@ -36,22 +54,52 @@ def readEmail (irc, contactList):
 						payload=msg.get_payload()
 						message=extract_body(payload)
 						if len(payload) == 2:
-							print("Hello, world!")
 							attachment = payload[1]
 							message = attachment.get_payload(decode=True)
 						contact = contactList[getContactIndex(contactList, fromAddr[:10]) -1].split("|")
-						if getContactIndex(contactList, fromAddr[:10]) <> -1:	
-							newMessage = IrcMessage.newRoomMessage("<" + contact[0] + "> " + message)
-							irc.sendMessage(newMessage)
+						if getContactIndex(contactList, fromAddr[:10]) <> -1:
+							messages.append(IrcMessage.newRoomMessage("<" + contact[0] + "> " + message))
 				typ, response = conn.store(num, '+FLAGS', r'(\Seen)')
 		finally:
 			try:
 				conn.close()
+				return messages
 			except:
 				pass
 			conn.logout()
 	except:
 		return
+
+
+
+def sendMail(contactList, to, text):
+	fromAddr = contactList[0].strip()
+	password = contactList[1].strip()
+
+	toAddr = contactList[getContactIndex(contactList,to) + 1]	
+	
+	mailServer = smtplib.SMTP('smtp.gmail.com:587')
+	mailServer.ehlo()
+	mailServer.starttls()
+	mailServer.ehlo()
+	mailServer.login(fromAddr,password)
+	mailServer.sendmail(fromAddr,toAddr,text)
+	mailServer.close()
+
+
+def getContactList():
+	configFile = open('configs/smsConfig','r')
+	contactList = configFile.readlines()
+	contactList = [x.replace('\n', '') for x in contactList]
+	return contactList
+
+
+def getContacts(contactList):
+	contacts = ''
+	for index, item in enumerate(contactList):
+		if index%2 == 0 and index>=2:
+			contacts += "| " + contactList[index]
+	return contacts[1:]
 
 
 def getContactIndex (contactList, contact):
@@ -61,68 +109,8 @@ def getContactIndex (contactList, contact):
 	return -1
 
 
-def getContactList():
-	configFile = open('configs/smsConfig','r')
-	contactList = configFile.readlines()
-	contactList = [x.replace('\n', '') for x in contactList]
-
-	return contactList
-
-def getContacts(contactList):
-	contacts = ''
-	for index, item in enumerate(contactList):
-		if index%2 == 0 and index>=2:
-			contacts += "| " + contactList[index]
-	return contacts[1:]
-	
-
-def sendMail(contactList, to, text):
-	fromAddr = contactList[0]
-	password = contactList[1]
-	
-	toAddr = contactList[getContactIndex(contactList,to) + 1]	
-
-	mailServer = smtplib.SMTP('smtp.gmail.com:587')
-	mailServer.ehlo()
-	mailServer.starttls()
-	mailServer.ehlo()
-	mailServer.login(fromAddr,password)
-	mailServer.sendmail(fromAddr,toAddr,text)
-	mailServer.close()
-
-	
-def getQuery(contactList, message, messagePart):
-	stringMatch = "(text|txt)(" + getContacts(contactList) + ") (.*)"
-	expression = re.compile(stringMatch, re.IGNORECASE)
-	match = expression.match(message)
-	if match:
-		try:
-			return match.group(messagePart).strip()
-		except:
-			return None
+def extract_body(payload):
+	if isinstance(payload,str):
+		return payload
 	else:
-		return None
-	
-
-def main(irc):
- 	message = irc.lastMessage()
-	contactList = getContactList()
-	readEmail(irc, contactList)
-	messages = []
-	if message.botCommand == "contacts":
-		messages.append(IrcMessage.newRoomMessage("Contacts in system:" + getContacts(contactList).replace("|",",")))		
-	if message.body != None:
-		text = getQuery(contactList,message.body,CONST_MESSAGE)
-		if text:
-			print getQuery(contactList,message.body,CONST_CONTACT)
-			contact = getQuery(contactList,message.body,CONST_CONTACT)
-			if contact:
-				try:
-					print message.sendingNick
-					sendMail(contactList,contact,"<" + message.sendingNick + "> " + text)
-					messages.append(IrcMessage.newRoomMessage("Text message sent to " + contact))
-				except:
-					return
-			else:
-				messages.append(IrcMessage.newRoomMessage("Does not match any known contact."))
-	irc.sendMessages(messages)
+		return '\n'.join([extract_body(part.get_payload()) for part in payload])

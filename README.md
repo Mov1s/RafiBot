@@ -9,6 +9,7 @@ After cloning this repo you are almost ready to run Rafi!  First, make sure you 
 * Python 2.7.x
 * Python MySql module (needed for the apTrackingModule and baseModule)
 * Python BeautifulSoup4 module (needed for several modules)
+* Python Google API Client (for event module)
 * MySql (needed for the apTrackingModule and baseModule)
 * Of course git :P
 
