@@ -222,8 +222,8 @@ class IrcMessage():
         spoofMessage.body = theMessageBody
         spoofMessage.isServerMessage = True
         spoofMessage.isOffRecord = offRecord
-        return spoofMessage 
-    
+        return spoofMessage
+
     def newResponseMessage(self, theMessageBody):
         """Create and return a new IrcMessage object that is a direct response to this message.
 
@@ -237,7 +237,7 @@ class IrcMessage():
         else:
             newMessage = IrcMessage.newRoomMessage(theMessageBody, self.recievingRoom)
         return newMessage
-    
+
 
 class IrcModule:
     """Class representing an IRC module.
@@ -259,7 +259,7 @@ class IrcModule:
         botCommandResponses = self.evaluateBotCommands(someMessage)
         return regexResponses + idleResponses + botCommandResponses
 
-    def defineResponses():
+    def defineResponses(self):
         """Define the filters this module responds too.  Override in subclasses."""
         return
 
