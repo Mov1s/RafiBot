@@ -1,42 +1,44 @@
 from ircBase import *
 from bottle import route, run, template
 import apTrackingModule
-import MySQLdb as mdb
 import time
 import datetime
-import ConfigParser
 from multiprocessing import Process
-
-config = ConfigParser.SafeConfigParser()
-config.read('configs/ircBase.conf')
-
-CONST_DB_USER = config.get('MySql', 'username')
-CONST_DB_PASSWORD = config.get('MySql', 'password')
-
-CONST_MODULE = None
-
+ 
+def setup_server(theHost, thePort, theModule):
+    route('/<action>/<name>')(theModule.index)
+    run(host=theHost, port=thePort)
+ 
 class AndroidServiceModule(IrcModule):
-
-    @route('/<action>/<name>')
-    def index(action,name):
+ 
+    def defineResponses(self):
+        t = Process(target=setup_server, kwargs=dict(theHost='0.0.0.0', thePort=31337, theModule=self))
+        t.start()
+ 
+    def index(self, action, name):
+ 
+        #Get the current database connection from the running module
+        module_database_connection = self.ircBot.databaseConnection()
+ 
+        #Perform ap tracking action for stats
         returnMessage = ''
         if(action=='stats'):
-            statsMessage = apTrackingModule.getApStatsForNick(mdb.connect('localhost',CONST_DB_USER, CONST_DB_PASSWORD, 'rafiBot'), name)
+            statsMessage = apTrackingModule.getApStatsForNick(module_database_connection, name)
+            self.ircBot.irc.sendMessage(IrcMessage.newRoomMessage(statsMessage))
             returnMessage = '{'
             if 'drinking' in statsMessage:
                 returnMessage += '"currentAP":"true",'
             returnMessage += '"message":"' + statsMessage + '"}'
+        
+        #Perform ap tracking action for start
         if(action=='start'):
-            returnMessage = '{"message":"' + apTrackingModule.startTrackingApForNick(mdb.connect('localhost',CONST_DB_USER, CONST_DB_PASSWORD, 'rafiBot'), name) + '"}'
+            startMessage = apTrackingModule.startTrackingApForNick(module_database_connection, name)
+            self.ircBot.irc.sendMessage(IrcMessage.newRoomMessage(startMessage))
+            returnMessage = '{"message":"' + startMessage + '"}'
+ 
+        #Perform ap tracking action for stop
         if(action=='stop'):
-            returnMessage = '{"message":"' + apTrackingModule.stopTrackingApForNick(mdb.connect('localhost',CONST_DB_USER, CONST_DB_PASSWORD, 'rafiBot'), name) + '"}'
+            stopMessage = apTrackingModule.stopTrackingApForNick(module_database_connection, name)
+            self.ircBot.irc.sendMessage(IrcMessage.newRoomMessage(stopMessage))
+            returnMessage = '{"message":"' + stopMessage + '"}'
         return returnMessage
-
-    t = Process(target=run, kwargs=dict(host='0.0.0.0', port=31337))
-    t.start()
-
-    def defineResponses(self):
-        print self
-        print self.ircBot
-        global CONST_MODULE
-        CONST_MODULE = self
