@@ -335,16 +335,19 @@ class IrcBot(object):
     Keep a list of modules to be run against IRC activity.
 
     """
+    instance = None
+
     def __init__(self):
         """Initialize the bot with the default IRC connection."""
         self._databaseConnection = None
         self.irc = IrcConnection.newConnection()
-        self.modules = []
+        self.responses = []
 
-    def attachModule(self, aModule):
-        """Add a movule to the list of modules this bot should evaluate."""
-        aModule.ircBot = self
-        self.modules.append(aModule)
+    @staticmethod
+    def shared_instance():
+        if IrcBot.instance == None:
+            IrcBot.instance = IrcBot()
+        return IrcBot.instance
 
     def databaseConnection(self):
         """Construct a database connection if there is not one and return it."""
@@ -352,11 +355,11 @@ class IrcBot(object):
             self._databaseConnection = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD)
         return self._databaseConnection
 
+    def register_response(self, aResponse):
+        self.responses.append(aResponse)
+
     def run(self):
         """Start the bot responding to IRC activity."""
-        #Let all the modules define their responses
-        for module in self.modules:
-            module.defineResponses()
 
         #Start the main loop
         while True:
@@ -368,14 +371,7 @@ class IrcBot(object):
                 continue
 
             #Perform the module actions
-            messages = []
-            for module in self.modules:
-                try:
-                    messages = messages + module.do(server_message)
-                except:
-                    logging.exception(module.__class__.__name__)
-                    messageString = "Module Error: " + module.__class__.__name__
-                    messages.append(IrcMessage().newRoomMessage(messageString))
+            messages = self.evaluate_responses(self.responses, server_message)
             self.irc.sendMessages(messages)
 
             #Close the database connection
@@ -384,3 +380,50 @@ class IrcBot(object):
             self._databaseConnection = None
 
             print server_message.rawMessage
+
+    def evaluate_responses(self, someResponses, aMessage):
+        messages = []
+        for response in self.responses:
+            if response.type == 'regex':
+                messages = messages + self.evaluate_regex_response(response, aMessage)
+        return messages
+
+    def evaluate_regex_response(self, aResponse, aMessage):
+        """Check all of the Regex filters and return a list of messages."""
+        #Return imediatley if the message does not have a body
+        if not aMessage.body:
+            return []
+
+        #Test the message against each regex filter in this module
+        responses = []
+        regex = aResponse.condition
+        action = aResponse.action
+
+        matchGroup = self.evaluate_message_against_regex(regex, aMessage.body)
+        if matchGroup != None:
+            messages = action(aMessage, matchGroup = matchGroup)
+            if isinstance(messages, list):
+               responses = responses + messages
+            elif messages:
+                responses.append(messages)
+        return responses
+
+    def evaluate_message_against_regex(self, aRegex, aMessageBody):
+        """Perform a regex on a message body and return an array of match parts."""
+        expression = re.compile(aRegex, re.IGNORECASE)
+        match = expression.match(aMessageBody)
+        return match.groups() if match else None
+
+class Response:
+
+    def __init__(self, aType, aCondition, anAction):
+        self.type = aType
+        self.condition = aCondition
+        self.action = anAction
+
+def respondtoregex(regex):
+    def wrapper(func):
+        response = Response('regex', regex, func)
+        IrcBot.shared_instance().register_response(response)
+        return func
+    return wrapper
