@@ -250,7 +250,6 @@ class IrcModule:
         self.regexActions = {}
         self.idleActions = {}
         self.botCommandActions = {}
-        self.defineResponses()
 
     def do(self, someMessage):
         """Evaluate a message against all of the filters and return a list of messages."""
@@ -355,6 +354,11 @@ class IrcBot(object):
 
     def run(self):
         """Start the bot responding to IRC activity."""
+        #Let all the modules define their responses
+        for module in self.modules:
+            module.defineResponses()
+
+        #Start the main loop
         while True:
             server_message = self.irc.respondToServerMessages()
 
