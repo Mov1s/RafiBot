@@ -239,124 +239,32 @@ class IrcMessage():
         return newMessage
 
 
-class IrcModule:
-    """Class representing an IRC module.
-
-    Keep a list of filters and actions to evaluate against messages.
-
-    """
-    def __init__(self):
-        self.ircBot = None
-        self.regexActions = {}
-        self.idleActions = {}
-        self.botCommandActions = {}
-
-    def do(self, someMessage):
-        """Evaluate a message against all of the filters and return a list of messages."""
-        regexResponses = self.evaluateRegexes(someMessage)
-        idleResponses = self.evaluateIdleTimes()
-        botCommandResponses = self.evaluateBotCommands(someMessage)
-        return regexResponses + idleResponses + botCommandResponses
-
-    def defineResponses(self):
-        """Define the filters this module responds too.  Override in subclasses."""
-        return
-
-    def evaluateRegexes(self, someMessage):
-        """Check all of the Regex filters and return a list of messages."""
-        #Return imediatley if the message does not have a body
-        if not someMessage.body:
-            return []
-
-        #Test the message against each regex filter in this module
-        responses = []
-        for regex, action in self.regexActions.iteritems():
-            matchGroup = self.evaluateMessageAgainstRegex(regex, someMessage.body)
-            if matchGroup != None:
-                messages = action(someMessage, matchGroup=matchGroup)
-                if isinstance(messages, list):
-                   responses = responses + messages
-                elif messages:
-                    responses.append(messages)
-        return responses
-
-    def evaluateIdleTimes(self):
-        """Check all of the idle time filters and return a list of messages."""
-        responses = []
-        for idleTime, action in self.idleActions.iteritems():
-            if(self.ircBot.irc.noRoomActivityForTime(idleTime)):
-                messages = action(ircConnection=self.ircBot.irc)
-                if isinstance(messages, list):
-                   responses = responses + messages
-                elif messages:
-                    responses.append(messages)
-        return responses
-
-    def evaluateBotCommands(self, someMessage):
-        """Check all of the bot command filters and return a list of messages."""
-        #Return imediatley if the message is not a bot command
-        if not someMessage.isBotCommand:
-            return []
-
-        #Test the message against each bot command filter in this module
-        responses = []
-        for botCommand, action in self.botCommandActions.iteritems():
-            if botCommand == someMessage.botCommand:
-                messages = action(someMessage)
-                if isinstance(messages, list):
-                    responses = responses + messages
-                elif messages:
-                    responses.append(messages)
-        return responses
-
-    def evaluateMessageAgainstRegex(self, aRegex, aMessageBody):
-        """Perform a regex on a message body and return an array of match parts."""
-        expression = re.compile(aRegex, re.IGNORECASE)
-        match = expression.match(aMessageBody)
-        return match.groups() if match else None
-
-    def respondToRegex(self, aKeyword, anAction):
-        """Register a regex to respond to and the action to perform."""
-        self.regexActions[aKeyword] = anAction
-
-    def respondToIdleTime(self, timeInSeconds, anAction):
-        """Register an idle time to respond to and the action to perform."""
-        self.idleActions[timeInSeconds] = anAction
-
-    def respondToBotCommand(self, aBotCommand, anAction):
-        """Register a bot command to respond to and the action to perform."""
-        self.botCommandActions[aBotCommand] = anAction
-
-
 class IrcBot(object):
-    """Class representing an IRC bot.
+    """Singleton class representing an IRC bot.
 
     Keep a connection to the server and respond to IRC actiity.
-    Keep a list of modules to be run against IRC activity.
 
     """
-    instance = None
+    _instance = None
 
     def __init__(self):
         """Initialize the bot with the default IRC connection."""
-        self._databaseConnection = None
+        self._database_connection = None
         self.irc = IrcConnection.newConnection()
-        self.responses = []
+        self.response_evaluator = ResponseEvaluator()
 
-    @staticmethod
-    def shared_instance():
-        if IrcBot.instance == None:
-            IrcBot.instance = IrcBot()
-        return IrcBot.instance
+    @classmethod
+    def shared_instance(cls):
+        '''Singleton instance retriever.  Creates a new instance if there is not already one.'''
+        if IrcBot._instance == None:
+            IrcBot._instance = IrcBot()
+        return IrcBot._instance
 
-    def databaseConnection(self):
+    def database_connection(self):
         """Construct a database connection if there is not one and return it."""
-        if not self._databaseConnection:
-            self._databaseConnection = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD)
-        return self._databaseConnection
-
-    def register_response(self, aResponse):
-        self.responses.append(aResponse)
+        if not self._database_connection:
+            self._database_connection = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD)
+        return self._database_connection
 
     def run(self):
         """Start the bot responding to IRC activity."""
@@ -371,59 +279,140 @@ class IrcBot(object):
                 continue
 
             #Perform the module actions
-            messages = self.evaluate_responses(self.responses, server_message)
+            messages = self.response_evaluator.evaluate_responses_for_message(server_message)
             self.irc.sendMessages(messages)
 
             #Close the database connection
-            if self._databaseConnection:
-              self._databaseConnection.close()
-            self._databaseConnection = None
+            if self._database_connection:
+              self._database_connection.close()
+            self._database_connection = None
 
             print server_message.rawMessage
 
-    def evaluate_responses(self, someResponses, aMessage):
+
+class ResponseEvaluator:
+    """Class for keeping track of responses and evaluating them
+
+    Responses can be registered with the evaluator and when requested it will evaluate all of the responses
+    against an IrcMessage and return a list of response messages.
+
+    """
+
+    def __init__(self, some_responses = []):
+        '''Initialize the evaluator with some responses'''
+        self._responses = some_responses
+
+    def register_response(self, a_response):
+        '''Adds a response to the list of responses to be evaluated against a message'''
+        self._responses.append(a_response)
+
+    def evaluate_responses_for_message(self, a_message):
+        '''Evaluates all registered responses against an IrcMessage, returns a list of messages'''
         messages = []
-        for response in self.responses:
-            if response.type == 'regex':
-                messages = messages + self.evaluate_regex_response(response, aMessage)
+        for response in self._responses:
+            if response.type == Response.REGEX_RESPONSE:
+                messages = messages + self.evaluate_regex_response(response, a_message)
+            elif response.type == Response.COMMAND_RESPONSE:
+                messages = messages + self.evaluate_bot_command(response, a_message)
+            elif response.type == Response.IDLE_RESPONSE:
+                messages = messages + self.evaluate_idle_time(response)
         return messages
 
-    def evaluate_regex_response(self, aResponse, aMessage):
-        """Check all of the Regex filters and return a list of messages."""
+    def evaluate_regex_response(self, a_response, a_message):
+        '''Check a regex filter and return a list of messages.'''
         #Return imediatley if the message does not have a body
-        if not aMessage.body:
+        if not a_message.body:
             return []
 
-        #Test the message against each regex filter in this module
+        #Setup
         responses = []
-        regex = aResponse.condition
-        action = aResponse.action
+        regex = a_response.condition
+        action = a_response.action
 
-        matchGroup = self.evaluate_message_against_regex(regex, aMessage.body)
-        if matchGroup != None:
-            messages = action(aMessage, matchGroup = matchGroup)
+        #Test the message against the regex filter
+        expression = re.compile(regex, re.IGNORECASE)
+        match = expression.match(a_message.body)
+        match_group =  match.groups() if match else None
+
+        #Return response messages if the regex matched
+        if match_group != None:
+            messages = action(a_message, matchGroup = match_group)
+            if isinstance(messages, list):
+                responses = responses + messages
+            elif messages:
+                responses.append(messages)
+        return responses
+
+    def evaluate_bot_command(self, a_response, a_message):
+        '''Check a bot command filter and return a list of messages.'''
+        #Return imediatley if the message is not a bot command
+        if not a_message.isBotCommand:
+            return []
+
+        #Setup
+        responses = []
+        bot_command = a_response.condition
+        action = a_response.action
+
+        #Return response messages if the bot command matched
+        if bot_command == a_message.botCommand:
+            messages = action(a_message)
+            if isinstance(messages, list):
+                responses = responses + messages
+            elif messages:
+                responses.append(messages)
+        return responses
+
+    def evaluate_idle_time(self, a_response):
+        '''Check an idle time filter and return a list of messages.'''
+
+        #Setup
+        responses = []
+        idle_time = a_response.condition
+        action = a_response.action
+
+        #Return response messages if the idle time has been passed
+        if(IrcBot.shared_instance().irc.noRoomActivityForTime(idle_time)):
+            messages = action(ircConnection = IrcBot.shared_instance().irc)
             if isinstance(messages, list):
                responses = responses + messages
             elif messages:
                 responses.append(messages)
         return responses
 
-    def evaluate_message_against_regex(self, aRegex, aMessageBody):
-        """Perform a regex on a message body and return an array of match parts."""
-        expression = re.compile(aRegex, re.IGNORECASE)
-        match = expression.match(aMessageBody)
-        return match.groups() if match else None
 
 class Response:
+    """Class representing a response filter"""
 
-    def __init__(self, aType, aCondition, anAction):
-        self.type = aType
-        self.condition = aCondition
-        self.action = anAction
+    REGEX_RESPONSE = 'regex'
+    COMMAND_RESPONSE = 'botcommand'
+    IDLE_RESPONSE = 'idletime'
+
+    def __init__(self, a_type, a_condition, an_action):
+        self.type = a_type
+        self.condition = a_condition
+        self.action = an_action
 
 def respondtoregex(regex):
+    '''Registers a regex filter response with the shared IrcBot'''
     def wrapper(func):
-        response = Response('regex', regex, func)
-        IrcBot.shared_instance().register_response(response)
+        response = Response(Response.REGEX_RESPONSE, regex, func)
+        IrcBot.shared_instance().response_evaluator.register_response(response)
+        return func
+    return wrapper
+
+def respondtobotcommand(command):
+    '''Registers a bot command filter response with the shared IrcBot'''
+    def wrapper(func):
+        response = Response(Response.COMMAND_RESPONSE, command, func)
+        IrcBot.shared_instance().response_evaluator.register_response(response)
+        return func
+    return wrapper
+
+def respondtoidletime(idle_time):
+    '''Registers an idle time response with the shared IrcBot'''
+    def wrapper(func):
+        response = Response(Response.IDLE_RESPONSE, idle_time, func)
+        IrcBot.shared_instance().response_evaluator.register_response(response)
         return func
     return wrapper
