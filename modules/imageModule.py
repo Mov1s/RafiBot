@@ -13,7 +13,7 @@ def img_ma_response(message, **extra_args):
   query = extra_args['matchGroup'][2]
   image_link = random_image_link_for_query(query)
   response = image_link if image_link else 'Nothing found for ' + query
-  return message.newResponseMessage(response)
+  return message.new_response_message(response)
 
 #Searches google images for query and returns a random link
 def random_image_link_for_query(query):

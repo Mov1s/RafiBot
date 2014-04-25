@@ -14,17 +14,17 @@ CONST_DB_PASSWORD = config.get('MySql', 'password')
 @respondtobotcommand('quit')  
 def quit_response(message, **extra_args):
   """Respond to a command to quit."""
-  later_msg = IrcMessage.newRoomMessage('Later fags')
-  quit_msg = IrcMessage.newServerMessage('QUIT')
-  IrcBot.shared_instance().sendMessages([later_msg, quit_msg])
+  later_msg = IrcMessage.new_room_message('Later fags')
+  quit_msg = IrcMessage.new_server_message('QUIT')
+  IrcBot.shared_instance().send_messages([later_msg, quit_msg])
   sys.exit()
 
 @respondtobotcommand('update')
 def update_response(message, **extra_args):
   """Respond to a command to update."""
-  update_msg = IrcMessage.newRoomMessage('Brb, updating')
-  quit_msg = IrcMessage.newServerMessage('QUIT')
-  IrcBot.shared_instance().sendMessages([update_msg, quit_msg])
+  update_msg = IrcMessage.new_room_message('Brb, updating')
+  quit_msg = IrcMessage.new_server_message('QUIT')
+  IrcBot.shared_instance().send_messages([update_msg, quit_msg])
 
   #Call Rafi Git Update Script
   subprocess.call(["./rafiUpdater", "master"])
@@ -53,7 +53,7 @@ def hist_ma_response(message, **extra_args):
   return_messages = []
   for historyMessage in reversed(history_messages):
     sendingMessageBody = '{0}: {1}'.format(historyMessage.sendingNick, historyMessage.body)
-    return_messages.append(IrcMessage.newPrivateMessage(sendingMessageBody, message.sendingNick))
+    return_messages.append(IrcMessage.new_private_message(sendingMessageBody, message.sendingNick))
   return return_messages
 
 @respondtoregex('.*')
@@ -81,9 +81,9 @@ def runtime_evaluation_response(message, **extra_args):
 
   #Return message for one or the other
   if didMentionGit:
-    return message.newResponseMessage('My source is at https://github.com/Mov1s/RafiBot.git')
+    return message.new_response_message('My source is at https://github.com/Mov1s/RafiBot.git')
   elif didMentionBot:
-    return message.newResponseMessage(random_rafi_quote())
+    return message.new_response_message(random_rafi_quote())
 
 
 @respondtoidletime(1800)
@@ -91,12 +91,12 @@ def bewbs_response(**extra_args):
   """Respond with 'Bewbs'."""
   previousMessage = IrcBot.shared_instance().messageLog[-1]
   if not message_is_bewbs(previousMessage):
-    return IrcMessage.newRoomMessage('Bewbs')
+    return IrcMessage.new_room_message('Bewbs')
 
 @respondtoregex('.*(shiva).*')
 def shiva_response(message, **extra_args):
   """Respond with shiva blast."""
-  return IrcMessage.newRoomMessage('SHIVAKAMINISOMAKANDAKRAAAAAAAM!')
+  return IrcMessage.new_room_message('SHIVAKAMINISOMAKANDAKRAAAAAAAM!')
 
 @respondtobotcommand('adduser')
 def add_user_response(message, **extra_args):
@@ -108,7 +108,7 @@ def add_user_response(message, **extra_args):
     args = message.botCommandArguments
     response = createUser(args[0], args[1], args[2], args[3])
 
-  return message.newResponseMessage(response)
+  return message.new_response_message(response)
 
 @respondtobotcommand('addnick')
 def add_nick_response(message, **extra_args):
@@ -120,7 +120,7 @@ def add_nick_response(message, **extra_args):
     args = message.botCommandArguments
     response = addNickForEmail(args[0], args[1])
 
-  return message.newResponseMessage(response)
+  return message.new_response_message(response)
 
 @respondtobotcommand('userinfo')
 def user_info_response(message, **extra_args):
@@ -132,7 +132,7 @@ def user_info_response(message, **extra_args):
     args = message.botCommandArguments
     response = informationForUser(args[0])
 
-  return message.newResponseMessage(response)
+  return message.new_response_message(response)
 
 
 def createUser(aFirstName, aLastName, anEmail, aMobileNumber):

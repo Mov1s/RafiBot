@@ -43,7 +43,7 @@ class IrcMessage():
         self.isOffRecord = False
 
     @staticmethod
-    def newMessageFromRawMessage(aRawMessage):
+    def new_message_from_raw_message(aRawMessage):
         """Create and return a new IrcMessage object from a raw irc message string."""
         newMessage = IrcMessage()
         newMessage.rawMessage = aRawMessage
@@ -100,7 +100,7 @@ class IrcMessage():
         return newMessage
 
     @staticmethod
-    def newRoomMessage(theMessageBody, offRecord = False):
+    def new_room_message(theMessageBody, offRecord = False):
         """Create and return a new IrcMessage object to be sent out to a room."""
         spoofMessage = IrcMessage()
         spoofMessage.isRoomMessage = True
@@ -109,7 +109,7 @@ class IrcMessage():
         return spoofMessage
 
     @staticmethod
-    def newPrivateMessage(theMessageBody, aRecievingNick, offRecord = True):
+    def new_private_message(theMessageBody, aRecievingNick, offRecord = True):
         """Create and return a new IrcMessage object to be sent out to a nick."""
         spoofMessage = IrcMessage()
         spoofMessage.isPrivateMessage = True
@@ -119,7 +119,7 @@ class IrcMessage():
         return spoofMessage
 
     @staticmethod
-    def newServerMessage(theMessageBody, offRecord = True):
+    def new_server_message(theMessageBody, offRecord = True):
         """Create and return a new IrcMessage object to be sent out to the server."""
         spoofMessage = IrcMessage()
         spoofMessage.body = theMessageBody
@@ -127,7 +127,7 @@ class IrcMessage():
         spoofMessage.isOffRecord = offRecord
         return spoofMessage
 
-    def newResponseMessage(self, theMessageBody):
+    def new_response_message(self, theMessageBody):
         """Create and return a new IrcMessage object that is a direct response to this message.
 
         If this message is a PM then the response will be a PM back to that person.
@@ -136,9 +136,9 @@ class IrcMessage():
         """
         newMessage = None
         if self.isPrivateMessage:
-            newMessage = IrcMessage.newPrivateMessage(theMessageBody, self.sendingNick)
+            newMessage = IrcMessage.new_private_message(theMessageBody, self.sendingNick)
         else:
-            newMessage = IrcMessage.newRoomMessage(theMessageBody)
+            newMessage = IrcMessage.new_room_message(theMessageBody)
         return newMessage
 
 
@@ -219,7 +219,7 @@ class IrcBot(object):
                 return self._wait_for_message_from_server(attempt + 1)
 
         #Respond to ping or add to log
-        message = IrcMessage.newMessageFromRawMessage(message)
+        message = IrcMessage.new_message_from_raw_message(message)
         if message.isPing:
             self._send_pong_for_ping(message)
         elif not message.isServerMessage and message.isRoomMessage:
@@ -239,7 +239,7 @@ class IrcBot(object):
         if len(self.messageLog) > 40:
             del self.messageLog[0]
 
-    def sendMessage(self, aMessage):
+    def send_message(self, aMessage):
         """Send a message to the IRC server."""
         if aMessage.isRoomMessage:
             fullMessage = self.room + ' :' + aMessage.body + '\r\n'
@@ -253,16 +253,16 @@ class IrcBot(object):
         aMessage.sendingNick = self.nick
         if not aMessage.isOffRecord: self._add_message_to_log(aMessage)
 
-    def sendMessages(self, someMessages):
+    def send_messages(self, someMessages):
         """Send a list of messages to the IRC server."""
         for message in someMessages:
-            self.sendMessage(message)
+            self.send_message(message)
 
     def is_configured(self):
         '''Checks if the values needed to connect to an irc server are set'''
         return self.nick and self.room and self._server and self._server_port
 
-    def noRoomActivityForTime(self, timeInSeconds):
+    def no_room_activity_for_time(self, timeInSeconds):
         """Return True if there has been any activity in a given period of time."""
         currentTime = time.time()
         return currentTime - self.lastMessageTimestamp >= timeInSeconds
@@ -298,7 +298,7 @@ class IrcBot(object):
 
             #Perform the module actions
             messages = self.response_evaluator.evaluate_responses_for_message(server_message)
-            self.sendMessages(messages)
+            self.send_messages(messages)
 
             #Close the database connection
             if self._database_connection:
@@ -390,7 +390,7 @@ class ResponseEvaluator:
         action = a_response.action
 
         #Return response messages if the idle time has been passed
-        if(IrcBot.shared_instance().noRoomActivityForTime(idle_time)):
+        if(IrcBot.shared_instance().no_room_activity_for_time(idle_time)):
             messages = action()
             if isinstance(messages, list):
                responses = responses + messages
