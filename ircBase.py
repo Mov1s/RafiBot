@@ -11,126 +11,8 @@ logging.basicConfig(filename='modules.log', level=logging.ERROR)
 config = ConfigParser.SafeConfigParser()
 config.read('configs/ircBase.conf')
 
-CONST_NETWORK = config.get('Connection', 'server')
-CONST_PORT = int(config.get('Connection', 'port'))
-CONST_ROOM = config.get('Connection', 'room')
-CONST_NICK = config.get('Connection', 'nick')
 CONST_DB_USER = config.get('MySql', 'username')
 CONST_DB_PASSWORD = config.get('MySql', 'password')
-
-class IrcConnection():
-    """A class representing an IRC connection.
-
-    Keep a reference to the IRC socket we are communicating on.
-    Keep a reference of the last 20 messages sent over a channel.
-
-    """
-    def __init__(self):
-        """Intialize all the properties."""
-        self.network = None
-        self.port = None
-        self.room = None
-        self.nick = None
-
-        self.connection = None
-        self.messageLog = []
-        self.lastMessageTimestamp = time.time()
-
-    @staticmethod
-    def newConnection(aNetwork = CONST_NETWORK, aPort = CONST_PORT, aRoom = CONST_ROOM, aNick = CONST_NICK):
-        """Create and return an IRC connection using the constants at the top of the file."""
-        aConnection = IrcConnection()
-        aConnection.network = aNetwork
-        aConnection.port = aPort
-        aConnection.room = aRoom
-        aConnection.nick = aNick
-        return aConnection
-
-    def connect(self):
-        try:
-            newConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            newConnection.connect((self.network, self.port))
-            print newConnection.recv(4096)
-            newConnection.send('NICK ' + self.nick + '\r\n')
-            newConnection.send('USER ' + self.nick + ' ' + self.nick + ' ' + self.nick + ' :Python IRC\r\n')
-            newConnection.send('JOIN ' + self.room + '\r\n')
-            self.connection = newConnection
-            return True
-        except Exception, e:
-            return False   
-
-    def reconnect(self, attempt = 0, max_attempts = 10):
-        '''Attempt reconnecting to the IRC server
-        Retry up to max_attempts before giving up and failing'''
-
-        print "Attempting connection {0}...".format(attempt)
-
-        success = self.connect()
-        if not success and attempt < 10:
-            success = self.reconnect(attempt + 1, max_attempts)
-        return success
-
-    def waitForMessageFromServer(self, attempt = 0, max_attempts = 10):
-        """Main message handler for an IRC connection.
-
-        Recieve messages from the server.
-        Respond if it is a ping request.
-        Otherwise log the message.
-
-        """
-
-        message = self.connection.recv(4096) if self.connection else None
-
-        #Check if the connection is still up
-        if message == None or len(message) == 0:
-            if not self.reconnect() or attempt >= max_attempts:
-                return None
-            else:
-                return self.waitForMessageFromServer(attempt + 1)
-
-        #Respond to ping or add to log
-        message = IrcMessage.newMessageFromRawMessage(message)
-        if message.isPing:
-            self.sendPongForPing(message)
-        elif not message.isServerMessage and message.isRoomMessage:
-			self.addMessageToLog(message)
-        return message
-
-    def addMessageToLog(self, aMessage):
-        """Add a message to the message log."""
-        self.messageLog.append(aMessage)
-        if not aMessage.isPing:
-            self.lastMessageTimestamp = time.time()
-        if len(self.messageLog) > 40:
-            del self.messageLog[0]
-
-    def sendPongForPing(self, aPingMessage):
-        """Send a PONG message message to the server when a PING is issued."""
-        self.connection.send ('PONG ' + aPingMessage.rawMessage.split()[1] + '\r\n')
-
-    def sendMessage(self, aMessage):
-        """Send a message to the IRC server."""
-        if aMessage.isRoomMessage:
-            fullMessage = aMessage.recievingRoom + ' :' + aMessage.body + '\r\n'
-            self.connection.send('PRIVMSG ' + fullMessage)
-        elif aMessage.isPrivateMessage:
-            fullMessage = aMessage.privateMessageRecipient + ' :' + aMessage.body + '\r\n'
-            self.connection.send('PRIVMSG ' + fullMessage)
-        elif aMessage.isServerMessage:
-            self.connection.send(aMessage.body + '\r\n')
-
-        if not aMessage.isOffRecord: self.addMessageToLog(aMessage)
-
-    def sendMessages(self, someMessages):
-        """Send a list of messages to the IRC server."""
-        for message in someMessages:
-            self.sendMessage(message)
-
-    def noRoomActivityForTime(self, timeInSeconds):
-        """Return True if there has been any activity in a given period of time."""
-        currentTime = time.time()
-        return currentTime - self.lastMessageTimestamp >= timeInSeconds
-
 
 class IrcMessage():
     """Class representing an IRC message.
@@ -192,7 +74,7 @@ class IrcMessage():
 
         #Get bot command
         if not newMessage.isServerMessage:
-            bcExpression = re.compile(':!' + CONST_NICK + ' (.*)', re.IGNORECASE)
+            bcExpression = re.compile(':!(.*)', re.IGNORECASE)
             match = bcExpression.search(newMessage.rawMessage)
             if match:
                 newMessage.botCommand = match.group(1).split()[0].strip()
@@ -218,20 +100,21 @@ class IrcMessage():
         return newMessage
 
     @staticmethod
-    def newRoomMessage(theMessageBody, aRoom = None, offRecord = False):
+    def newRoomMessage(theMessageBody, offRecord = False):
         """Create and return a new IrcMessage object to be sent out to a room."""
-        if aRoom == None: aRoom = CONST_ROOM
-        spoofRawMessage = ':{0}! PRIVMSG {1} :{2}\r\n'.format(CONST_NICK, aRoom, theMessageBody)
-        spoofMessage = IrcMessage.newMessageFromRawMessage(spoofRawMessage)
+        spoofMessage = IrcMessage()
+        spoofMessage.isRoomMessage = True
+        spoofMessage.body = theMessageBody
         spoofMessage.isOffRecord = offRecord
         return spoofMessage
 
     @staticmethod
     def newPrivateMessage(theMessageBody, aRecievingNick, offRecord = True):
         """Create and return a new IrcMessage object to be sent out to a nick."""
-        spoofRawMessage = ':{0}! PRIVMSG {1} :{2}\r\n'
-        spoofRawMessage = spoofRawMessage.format(CONST_NICK, aRecievingNick, theMessageBody)
-        spoofMessage = IrcMessage.newMessageFromRawMessage(spoofRawMessage)
+        spoofMessage = IrcMessage()
+        spoofMessage.isPrivateMessage = True
+        spoofMessage.privateMessageRecipient = aRecievingNick
+        spoofMessage.body = theMessageBody
         spoofMessage.isOffRecord = offRecord
         return spoofMessage
 
@@ -255,7 +138,7 @@ class IrcMessage():
         if self.isPrivateMessage:
             newMessage = IrcMessage.newPrivateMessage(theMessageBody, self.sendingNick)
         else:
-            newMessage = IrcMessage.newRoomMessage(theMessageBody, self.recievingRoom)
+            newMessage = IrcMessage.newRoomMessage(theMessageBody)
         return newMessage
 
 
@@ -270,8 +153,16 @@ class IrcBot(object):
     def __init__(self):
         """Initialize the bot with the default IRC connection."""
         self._database_connection = None
-        self.irc = IrcConnection.newConnection()
         self.response_evaluator = ResponseEvaluator()
+
+        self.nick = None
+        self.room = None
+        self._server = None
+        self._server_port = None
+
+        self.connection = None
+        self.messageLog = []
+        self.lastMessageTimestamp = time.time()
 
     @classmethod
     def shared_instance(cls):
@@ -280,11 +171,111 @@ class IrcBot(object):
             IrcBot._instance = IrcBot()
         return IrcBot._instance
 
-    def configure_from_file(self, a_config_file):
-        '''Configure the connection params of this bot from a config file'''
+    def connect(self, attempt = 0, max_attempts = 10):
+        '''Attempt connecting to the IRC server
+        Retry up to max_attempts before giving up and failing'''
 
-    def configure(self, a_network = CONST_NETWORK, a_port = CONST_PORT, a_room = CONST_ROOM, a_nick = CONST_NICK):
-        '''Configure the connection params of this bot manually'''
+        print "Attempting connection {0}...".format(attempt)
+
+        #Configure the settings if they are not already set up
+        if not self.is_configured(): self.configure_from_file()
+
+        #Attempt connection to the irc server
+        connection_was_successfull = False 
+        try:
+            newConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            newConnection.connect((self._server, self._server_port))
+            print newConnection.recv(4096)
+
+            newConnection.send('NICK ' + self.nick + '\r\n')
+            newConnection.send('USER ' + self.nick + ' ' + self.nick + ' ' + self.nick + ' :Python IRC\r\n')
+            newConnection.send('JOIN ' + self.room + '\r\n')
+            self.connection = newConnection
+            connection_was_successfull = True 
+        except Exception, e:
+            connection_was_successfull = False 
+
+        #If connection failed recurse and try again
+        if not connection_was_successfull and attempt < 10:
+            connection_was_successfull = self.connect(attempt + 1, max_attempts)
+        return connection_was_successfull
+
+    def _wait_for_message_from_server(self, attempt = 0, max_attempts = 10):
+        """Main message handler for an IRC connection.
+
+        Recieve messages from the server.
+        Respond if it is a ping request.
+        Otherwise log the message.
+
+        """
+
+        message = self.connection.recv(4096) if self.connection else None
+
+        #Check if the connection is still up
+        if message == None or len(message) == 0:
+            if not self.connect() or attempt >= max_attempts:
+                return None
+            else:
+                return self._wait_for_message_from_server(attempt + 1)
+
+        #Respond to ping or add to log
+        message = IrcMessage.newMessageFromRawMessage(message)
+        if message.isPing:
+            self._send_pong_for_ping(message)
+        elif not message.isServerMessage and message.isRoomMessage:
+            self._add_message_to_log(message)
+        return message
+
+    def _send_pong_for_ping(self, aPingMessage):
+        """Send a PONG message message to the server when a PING is issued."""
+        self.connection.send ('PONG ' + aPingMessage.rawMessage.split()[1] + '\r\n')
+
+    def _add_message_to_log(self, aMessage):
+        """Add a message to the message log."""
+
+        self.messageLog.append(aMessage)
+        if not aMessage.isPing:
+            self.lastMessageTimestamp = time.time()
+        if len(self.messageLog) > 40:
+            del self.messageLog[0]
+
+    def sendMessage(self, aMessage):
+        """Send a message to the IRC server."""
+        if aMessage.isRoomMessage:
+            fullMessage = self.room + ' :' + aMessage.body + '\r\n'
+            self.connection.send('PRIVMSG ' + fullMessage)
+        elif aMessage.isPrivateMessage:
+            fullMessage = aMessage.privateMessageRecipient + ' :' + aMessage.body + '\r\n'
+            self.connection.send('PRIVMSG ' + fullMessage)
+        elif aMessage.isServerMessage:
+            self.connection.send(aMessage.body + '\r\n')
+
+        aMessage.sendingNick = self.nick
+        if not aMessage.isOffRecord: self._add_message_to_log(aMessage)
+
+    def sendMessages(self, someMessages):
+        """Send a list of messages to the IRC server."""
+        for message in someMessages:
+            self.sendMessage(message)
+
+    def is_configured(self):
+        '''Checks if the values needed to connect to an irc server are set'''
+        return self.nick and self.room and self._server and self._server_port
+
+    def noRoomActivityForTime(self, timeInSeconds):
+        """Return True if there has been any activity in a given period of time."""
+        currentTime = time.time()
+        return currentTime - self.lastMessageTimestamp >= timeInSeconds
+
+    def configure_from_file(self, a_config_file = 'configs/ircBase.conf'):
+        '''Configure the connection params of this bot from a config file'''
+        config = ConfigParser.SafeConfigParser()
+        config.read(a_config_file)
+
+        self._server = config.get('Connection', 'server')
+        self._server_port = int(config.get('Connection', 'port'))
+        self.room = config.get('Connection', 'room')
+        self.nick = config.get('Connection', 'nick')
 
     def database_connection(self):
         """Construct a database connection if there is not one and return it."""
@@ -298,7 +289,7 @@ class IrcBot(object):
         #Start the main loop
         while True:
 
-            server_message = self.irc.waitForMessageFromServer()
+            server_message = self._wait_for_message_from_server()
 
             #No server message means unable to connect to server
             if not server_message:
@@ -307,7 +298,7 @@ class IrcBot(object):
 
             #Perform the module actions
             messages = self.response_evaluator.evaluate_responses_for_message(server_message)
-            self.irc.sendMessages(messages)
+            self.sendMessages(messages)
 
             #Close the database connection
             if self._database_connection:
@@ -399,8 +390,8 @@ class ResponseEvaluator:
         action = a_response.action
 
         #Return response messages if the idle time has been passed
-        if(IrcBot.shared_instance().irc.noRoomActivityForTime(idle_time)):
-            messages = action(ircConnection = IrcBot.shared_instance().irc)
+        if(IrcBot.shared_instance().noRoomActivityForTime(idle_time)):
+            messages = action()
             if isinstance(messages, list):
                responses = responses + messages
             elif messages:

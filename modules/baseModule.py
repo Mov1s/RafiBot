@@ -16,7 +16,7 @@ def quit_response(message, **extra_args):
   """Respond to a command to quit."""
   later_msg = IrcMessage.newRoomMessage('Later fags')
   quit_msg = IrcMessage.newServerMessage('QUIT')
-  IrcBot.shared_instance().irc.sendMessages([later_msg, quit_msg])
+  IrcBot.shared_instance().sendMessages([later_msg, quit_msg])
   sys.exit()
 
 @respondtobotcommand('update')
@@ -24,7 +24,7 @@ def update_response(message, **extra_args):
   """Respond to a command to update."""
   update_msg = IrcMessage.newRoomMessage('Brb, updating')
   quit_msg = IrcMessage.newServerMessage('QUIT')
-  IrcBot.shared_instance().irc.sendMessages([update_msg, quit_msg])
+  IrcBot.shared_instance().sendMessages([update_msg, quit_msg])
 
   #Call Rafi Git Update Script
   subprocess.call(["./rafiUpdater", "master"])
@@ -36,7 +36,7 @@ def update_response(message, **extra_args):
 def hist_ma_response(message, **extra_args):
   """Respond to a 'hist ma' request."""
   #Determine how many messages to show
-  message_log = IrcBot.shared_instance().irc.messageLog
+  message_log = IrcBot.shared_instance().messageLog
   history_depth = 10 if len(message_log) > 11 else len(message_log) - 1
 
   #Determine which messages the user wants to see
@@ -70,12 +70,12 @@ def runtime_evaluation_response(message, **extra_args):
     return
 
   #Regex for mentioning the bot name
-  quote_regex = '.*{0}.*'.format(IrcBot.shared_instance().irc.nick)
+  quote_regex = '.*{0}.*'.format(IrcBot.shared_instance().nick)
   quote_expression = re.compile(quote_regex, re.IGNORECASE)
   didMentionBot = quote_expression.match(message.body) != None
 
   #Regex for people talking about bot git
-  git_regex = '(.*git.*{0}.*)|(.*{0}.*git.*)'.format(IrcBot.shared_instance().irc.nick)
+  git_regex = '(.*git.*{0}.*)|(.*{0}.*git.*)'.format(IrcBot.shared_instance().nick)
   git_expression = re.compile(git_regex, re.IGNORECASE)
   didMentionGit = git_expression.match(message.body) != None
 
@@ -89,7 +89,7 @@ def runtime_evaluation_response(message, **extra_args):
 @respondtoidletime(1800)
 def bewbs_response(**extra_args):
   """Respond with 'Bewbs'."""
-  previousMessage = IrcBot.shared_instance().irc.messageLog[-1]
+  previousMessage = IrcBot.shared_instance().messageLog[-1]
   if not message_is_bewbs(previousMessage):
     return IrcMessage.newRoomMessage('Bewbs')
 
