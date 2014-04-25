@@ -39,22 +39,38 @@ class IrcConnection():
     @staticmethod
     def newConnection(aNetwork = CONST_NETWORK, aPort = CONST_PORT, aRoom = CONST_ROOM, aNick = CONST_NICK):
         """Create and return an IRC connection using the constants at the top of the file."""
-        newConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        newConnection.connect((aNetwork, aPort))
-        print newConnection.recv(4096)
-        newConnection.send('NICK ' + aNick + '\r\n')
-        newConnection.send('USER ' + aNick + ' ' + aNick + ' ' + aNick + ' :Python IRC\r\n')
-        newConnection.send('JOIN ' + aRoom + '\r\n')
-
         aConnection = IrcConnection()
-        aConnection.connection = newConnection
         aConnection.network = aNetwork
         aConnection.port = aPort
         aConnection.room = aRoom
         aConnection.nick = aNick
         return aConnection
 
-    def respondToServerMessages(self):
+    def connect(self):
+        try:
+            newConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            newConnection.connect((self.network, self.port))
+            print newConnection.recv(4096)
+            newConnection.send('NICK ' + self.nick + '\r\n')
+            newConnection.send('USER ' + self.nick + ' ' + self.nick + ' ' + self.nick + ' :Python IRC\r\n')
+            newConnection.send('JOIN ' + self.room + '\r\n')
+            self.connection = newConnection
+            return True
+        except Exception, e:
+            return False   
+
+    def reconnect(self, attempt = 0, max_attempts = 10):
+        '''Attempt reconnecting to the IRC server
+        Retry up to max_attempts before giving up and failing'''
+
+        print "Attempting connection {0}...".format(attempt)
+
+        success = self.connect()
+        if not success and attempt < 10:
+            success = self.reconnect(attempt + 1, max_attempts)
+        return success
+
+    def waitForMessageFromServer(self, attempt = 0, max_attempts = 10):
         """Main message handler for an IRC connection.
 
         Recieve messages from the server.
@@ -63,17 +79,21 @@ class IrcConnection():
 
         """
 
-        message = self.connection.recv(4096)
+        message = self.connection.recv(4096) if self.connection else None
 
         #Check if the connection is still up
-        if len(message) == 0:
-          return None
+        if message == None or len(message) == 0:
+            if not self.reconnect() or attempt >= max_attempts:
+                return None
+            else:
+                return self.waitForMessageFromServer(attempt + 1)
 
+        #Respond to ping or add to log
         message = IrcMessage.newMessageFromRawMessage(message)
         if message.isPing:
             self.sendPongForPing(message)
         elif not message.isServerMessage and message.isRoomMessage:
-						self.addMessageToLog(message)
+			self.addMessageToLog(message)
         return message
 
     def addMessageToLog(self, aMessage):
@@ -260,6 +280,12 @@ class IrcBot(object):
             IrcBot._instance = IrcBot()
         return IrcBot._instance
 
+    def configure_from_file(self, a_config_file):
+        '''Configure the connection params of this bot from a config file'''
+
+    def configure(self, a_network = CONST_NETWORK, a_port = CONST_PORT, a_room = CONST_ROOM, a_nick = CONST_NICK):
+        '''Configure the connection params of this bot manually'''
+
     def database_connection(self):
         """Construct a database connection if there is not one and return it."""
         if not self._database_connection:
@@ -271,12 +297,13 @@ class IrcBot(object):
 
         #Start the main loop
         while True:
-            server_message = self.irc.respondToServerMessages()
 
-            #Reconnect if needed
+            server_message = self.irc.waitForMessageFromServer()
+
+            #No server message means unable to connect to server
             if not server_message:
-                self.irc = IrcConnection.newConnection()
-                continue
+                print "Failed to connect to the server..."
+                break
 
             #Perform the module actions
             messages = self.response_evaluator.evaluate_responses_for_message(server_message)
