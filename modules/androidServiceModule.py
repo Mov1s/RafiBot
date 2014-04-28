@@ -3,7 +3,14 @@ from bottle import route, run, template
 import apTrackingModule
 import time
 import datetime
+import ConfigParser
 from multiprocessing import Process
+
+config = ConfigParser.SafeConfigParser()
+config.read('configs/ircBase.conf')
+
+CONST_DB_USER = config.get('MySql', 'username')
+CONST_DB_PASSWORD = config.get('MySql', 'password')
 
 def setup_server(theHost, thePort, theModule):
     route('/<action>/<name>')(theModule.index)
@@ -16,15 +23,13 @@ class AndroidServiceModule(IrcModule):
         t.start()
 
     def index(self, action, name):
-
-        print self
-        #Get the current database connection from the running module
-        module_database_connection = self.ircBot.databaseConnection()
+        #Open Database Connection
+        databaseConnection = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD)
 
         #Perform ap tracking action for stats
         returnMessage = ''
         if(action=='stats'):
-            statsMessage = apTrackingModule.getApStatsForNick(module_database_connection, name)
+            statsMessage = apTrackingModule.getApStatsForNick(databaseConnection, name)
             returnMessage = '{'
             if 'drinking' in statsMessage:
                 returnMessage += '"currentAP":"true",'
@@ -32,15 +37,19 @@ class AndroidServiceModule(IrcModule):
 
         #Perform ap tracking action for start
         if(action=='start'):
-            startMessage = apTrackingModule.startTrackingApForNick(module_database_connection, name)
+            startMessage = apTrackingModule.startTrackingApForNick(databaseConnection, name)
             if 'Bottoms' in startMessage:
                 self.ircBot.irc.sendMessage(IrcMessage.newRoomMessage(name + ' has started drinking an AP. ' + startMessage))
             returnMessage = '{"message":"' + startMessage + '"}'
 
         #Perform ap tracking action for stop
         if(action=='stop'):
-            stopMessage = apTrackingModule.stopTrackingApForNick(module_database_connection, name)
+            stopMessage = apTrackingModule.stopTrackingApForNick(databaseConnection, name)
             if 'took' in stopMessage:
                 self.ircBot.irc.sendMessage(IrcMessage.newRoomMessage(stopMessage.replace('you',name)))
             returnMessage = '{"message":"' + stopMessage + '"}'
+
+        #Close Database Connection
+        databaseConnection.close()
+
         return returnMessage
