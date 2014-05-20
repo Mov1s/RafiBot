@@ -36,7 +36,7 @@ def update_response(message, **extra_args):
 def hist_ma_response(message, **extra_args):
   """Respond to a 'hist ma' request."""
   #Determine how many messages to show
-  message_log = IrcBot.shared_instance().messageLog
+  message_log = IrcBot.shared_instance().message_log
   history_depth = 10 if len(message_log) > 11 else len(message_log) - 1
 
   #Determine which messages the user wants to see
@@ -52,8 +52,8 @@ def hist_ma_response(message, **extra_args):
   #PM the requested message history
   return_messages = []
   for historyMessage in reversed(history_messages):
-    sendingMessageBody = '{0}: {1}'.format(historyMessage.sendingNick, historyMessage.body)
-    return_messages.append(IrcMessage.new_private_message(sendingMessageBody, message.sendingNick))
+    sendingMessageBody = '{0}: {1}'.format(historyMessage.sending_nick, historyMessage.body)
+    return_messages.append(IrcMessage.new_private_message(sendingMessageBody, message.sending_nick))
   return return_messages
 
 @respondtoregex('.*')
@@ -66,7 +66,7 @@ def runtime_evaluation_response(message, **extra_args):
 
   """
   #Return if it is a bot command
-  if message.isBotCommand:
+  if message.is_bot_command:
     return
 
   #Regex for mentioning the bot name
@@ -89,7 +89,7 @@ def runtime_evaluation_response(message, **extra_args):
 @respondtoidletime(1800)
 def bewbs_response(**extra_args):
   """Respond with 'Bewbs'."""
-  previousMessage = IrcBot.shared_instance().messageLog[-1]
+  previousMessage = IrcBot.shared_instance().message_log[-1]
   if not message_is_bewbs(previousMessage):
     return IrcMessage.new_room_message('Bewbs')
 
@@ -102,10 +102,10 @@ def shiva_response(message, **extra_args):
 def add_user_response(message, **extra_args):
   """Register a new user."""
   response = ''
-  if len(message.botCommandArguments) < 4:
+  if len(message.bot_command_arguments) < 4:
     response = 'syntax is "adduser <FirstName> <LastName> <Email> <MobileNumber>"'
   else:
-    args = message.botCommandArguments
+    args = message.bot_command_arguments
     response = createUser(args[0], args[1], args[2], args[3])
 
   return message.new_response_message(response)
@@ -114,10 +114,10 @@ def add_user_response(message, **extra_args):
 def add_nick_response(message, **extra_args):
   """Add a new alias or nick for a user."""
   response = ''
-  if len(message.botCommandArguments) < 2:
+  if len(message.bot_command_arguments) < 2:
     response = 'syntax is "addnick <Email> <Nick>"'
   else:
-    args = message.botCommandArguments
+    args = message.bot_command_arguments
     response = addNickForEmail(args[0], args[1])
 
   return message.new_response_message(response)
@@ -126,10 +126,10 @@ def add_nick_response(message, **extra_args):
 def user_info_response(message, **extra_args):
   """Return user details for a search string."""
   response = ''
-  if len(message.botCommandArguments) < 1:
+  if len(message.bot_command_arguments) < 1:
     response = 'syntax is "userinfo <SearchString>"'
   else:
-    args = message.botCommandArguments
+    args = message.bot_command_arguments
     response = informationForUser(args[0])
 
   return message.new_response_message(response)

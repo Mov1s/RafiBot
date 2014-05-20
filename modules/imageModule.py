@@ -10,7 +10,7 @@ URI_FORMAT = '/ajax/services/search/images?v=1.0&rsz=8&q='
 @respondtoregex('(image|img)( me| ma)? (.*)')
 def img_ma_response(message, **extra_args):
   '''Response for the 'img ma' expression'''
-  query = extra_args['matchGroup'][2]
+  query = extra_args['match_group'][2]
   image_link = random_image_link_for_query(query)
   response = image_link if image_link else 'Nothing found for ' + query
   return message.new_response_message(response)
