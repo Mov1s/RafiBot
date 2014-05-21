@@ -27,26 +27,6 @@ def strip_tags(html):
     s.feed(str(html))
     return s.get_data()
 
-def upload_from_web(url):
-    response = cStringIO.StringIO()
-    c = pycurl.Curl()
-
-    values = [("key", cfg.IMGUR_KEY),("image", url)]
-    c.setopt(c.URL, "http://api.imgur.com/2/upload.xml")
-    c.setopt(c.HTTPPOST, values)
-    c.setopt(c.WRITEFUNCTION, response.write)
-    c.perform()
-    c.close()
-
-    return response.getvalue()
-
-def upload_web_img(url):
-    xml = upload_from_web(url)
-    o = untangle.parse(xml)
-    url = o.upload.links.original.cdata
-
-    return url
-
 
 class WikiModule(IrcModule):
 	def defineResponses(self):
@@ -55,8 +35,9 @@ class WikiModule(IrcModule):
 def wikiParagraph(message, **extra_args):
     article= extra_args['matchGroup'][2]
     article = urllib.quote(article)
+    articleUrl = "http://en.wikipedia.org/wiki/" + article
 
-    html = urllib2.urlopen("http://en.wikipedia.org/wiki/" + article)
+    html = urllib2.urlopen(articleUrl)
     soup = BeautifulSoup(html)
     paragraphs = soup.findAll('div', id="bodyContent")
     for paragraph in paragraphs:
@@ -67,15 +48,16 @@ def wikiParagraph(message, **extra_args):
     responses = tokenizer.tokenize(response)
 
     messages = []
+    messages.append(IrcMessage.newRoomMessage(articleUrl))
     for sentence in responses:
-        messages.append(IrcMessage.newPrivateMessage(sentence, message.sendingNick))
+        messages.append(IrcMessage.newRoomMessage(sentence))
     try:
         imgs = soup.findAll("table", {"class":"infobox"})
         for img in imgs:
             imgUrl = 'http:' + img.findAll("tr")[1].find("img")['src']
-            messages.append(IrcMessage.newPrivateMessage(upload_web_img(imgUrl), message.sendingNick))
+            messages.append(IrcMessage.newRoomMessage(imgUrl))
     except:
-        messages.append(IrcMessage.newPrivateMessage('Unable to grab picture.', message.sendingNick))
+        messages.append(IrcMessage.newRoomMessage('Unable to grab picture.'))
 
 
     return messages
