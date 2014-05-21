@@ -73,9 +73,9 @@ class IrcMessage():
                     new_message.is_private_message = True
 
         #Get bot command
-        if not new_message.is_server_message:
-            bc_expression = re.compile(':!(.*)', re.IGNORECASE)
-            match = bc_expression.search(new_message.raw_message)
+        if not new_message.is_server_message and new_message.body != None:
+            bc_expression = re.compile('^!(.*)', re.IGNORECASE)
+            match = bc_expression.search(new_message.body)
             if match:
                 new_message.bot_command = match.group(1).split()[0].strip()
                 new_message.bot_command_arguments = match.group(1).split()[1:]
