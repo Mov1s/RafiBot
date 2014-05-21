@@ -10,133 +10,129 @@ config.read('configs/ircBase.conf')
 
 CONST_DB_USER = config.get('MySql', 'username')
 CONST_DB_PASSWORD = config.get('MySql', 'password')
-
-class BaseModule(IrcModule):
-
-  def defineResponses(self):
-    self.respondToBotCommand('quit', self.quit_response)
-    self.respondToBotCommand('update', self.update_response)
-    self.respondToRegex('(history|hist) (me|ma)(.*)', self.hist_ma_response)
-    self.respondToIdleTime(1800, self.bewbs_response)
-    self.respondToRegex('.*(shiva).*', self.shiva_response)
-    self.respondToBotCommand('adduser', self.add_user_response)
-    self.respondToBotCommand('addnick', self.add_nick_response)
-    self.respondToBotCommand('userinfo', self.user_info_response)
-    self.respondToRegex('.*', self.runtime_evaluation_response)
-    
-  def quit_response(self, message, **extra_args):
-    """Respond to a command to quit."""
-    later_msg = IrcMessage.newRoomMessage('Later fags')
-    quit_msg = IrcMessage.newServerMessage('QUIT')
-    self.ircBot.irc.sendMessages([later_msg, quit_msg])
-    sys.exit()
-
-  def update_response(self, message, **extra_args):
-    """Respond to a command to update."""
-    update_msg = IrcMessage.newRoomMessage('Brb, updating')
-    quit_msg = IrcMessage.newServerMessage('QUIT')
-    self.ircBot.irc.sendMessages([update_msg, quit_msg])
-
-    #Call Rafi Git Update Script
-    subprocess.call(["./rafiUpdater", "master"])
-
-    #Restart Rafi
-    os.execl(sys.executable, *([sys.executable]+sys.argv))
-
-  def hist_ma_response(self, message, **extra_args):
-    """Respond to a 'hist ma' request."""
-    #Determine how many messages to show
-    message_log = self.ircBot.irc.messageLog
-    history_depth = 10 if len(message_log) > 11 else len(message_log) - 1
-
-    #Determine which messages the user wants to see
-    history_count = 0
-    history_messages = []
-    for log_message in reversed(message_log[:-1]):
-      if log_message.body != None:
-        history_messages.append(log_message)
-        history_count += 1
-      if history_count >= history_depth:
-        break
-
-    #PM the requested message history
-    return_messages = []
-    for historyMessage in reversed(history_messages):
-      sendingMessageBody = '{0}: {1}'.format(historyMessage.sendingNick, historyMessage.body)
-      return_messages.append(IrcMessage.newPrivateMessage(sendingMessageBody, message.sendingNick))
-    return return_messages
-
-  def runtime_evaluation_response(self, message, **extra_args):
-    """Evaluates for every message.
-
-      Used to evaluate a regex at runtime instead of when the module
-      is instantiated.  I check for the bot name in the regex which
-      isn't available during instantiation.
-
-    """
-    #Return if it is a bot command
-    if message.isBotCommand:
-      return
-
-    #Regex for mentioning the bot name
-    quote_regex = '.*{0}.*'.format(self.ircBot.irc.nick)
-    quote_expression = re.compile(quote_regex, re.IGNORECASE)
-    didMentionBot = quote_expression.match(message.body) != None
-
-    #Regex for people talking about bot git
-    git_regex = '(.*git.*{0}.*)|(.*{0}.*git.*)'.format(self.ircBot.irc.nick)
-    git_expression = re.compile(git_regex, re.IGNORECASE)
-    didMentionGit = git_expression.match(message.body) != None
-
-    #Return message for one or the other
-    if didMentionGit:
-      return message.newResponseMessage('My source is at https://github.com/Mov1s/RafiBot.git')
-    elif didMentionBot:
-      return message.newResponseMessage(random_rafi_quote())
-
-
-  def bewbs_response(self, **extra_args):
-    """Respond with 'Bewbs'."""
-    previousMessage = self.ircBot.irc.messageLog[-1]
-    if not message_is_bewbs(previousMessage):
-      return IrcMessage.newRoomMessage('Bewbs')
-
-  def shiva_response(self, message, **extra_args):
-    """Respond with shiva blast."""
-    return IrcMessage.newRoomMessage('SHIVAKAMINISOMAKANDAKRAAAAAAAM!')
-
-  def add_user_response(self, message, **extra_args):
-    """Register a new user."""
-    response = ''
-    if len(message.botCommandArguments) < 4:
-      response = 'syntax is "adduser <FirstName> <LastName> <Email> <MobileNumber>"'
-    else:
-      args = message.botCommandArguments
-      response = createUser(args[0], args[1], args[2], args[3])
   
-    return message.newResponseMessage(response)
+@respondtobotcommand('quit')  
+def quit_response(message, **extra_args):
+  """Respond to a command to quit."""
+  later_msg = IrcMessage.new_room_message('Later fags')
+  quit_msg = IrcMessage.new_server_message('QUIT')
+  IrcBot.shared_instance().send_messages([later_msg, quit_msg])
+  sys.exit()
 
-  def add_nick_response(self, message, **extra_args):
-    """Add a new alias or nick for a user."""
-    response = ''
-    if len(message.botCommandArguments) < 2:
-      response = 'syntax is "addnick <Email> <Nick>"'
-    else:
-      args = message.botCommandArguments
-      response = addNickForEmail(args[0], args[1])
-  
-    return message.newResponseMessage(response)
+@respondtobotcommand('update')
+def update_response(message, **extra_args):
+  """Respond to a command to update."""
+  update_msg = IrcMessage.new_room_message('Brb, updating')
+  quit_msg = IrcMessage.new_server_message('QUIT')
+  IrcBot.shared_instance().send_messages([update_msg, quit_msg])
 
-  def user_info_response(self, message, **extra_args):
-    """Return user details for a search string."""
-    response = ''
-    if len(message.botCommandArguments) < 1:
-      response = 'syntax is "userinfo <SearchString>"'
-    else:
-      args = message.botCommandArguments
-      response = informationForUser(args[0])
-  
-    return message.newResponseMessage(response)
+  #Call Rafi Git Update Script
+  subprocess.call(["./rafiUpdater", "master"])
+
+  #Restart Rafi
+  os.execl(sys.executable, *([sys.executable]+sys.argv))
+
+@respondtoregex('(history|hist) (me|ma)(.*)')
+def hist_ma_response(message, **extra_args):
+  """Respond to a 'hist ma' request."""
+  #Determine how many messages to show
+  message_log = IrcBot.shared_instance().message_log
+  history_depth = 10 if len(message_log) > 11 else len(message_log) - 1
+
+  #Determine which messages the user wants to see
+  history_count = 0
+  history_messages = []
+  for log_message in reversed(message_log[:-1]):
+    if log_message.body != None:
+      history_messages.append(log_message)
+      history_count += 1
+    if history_count >= history_depth:
+      break
+
+  #PM the requested message history
+  return_messages = []
+  for historyMessage in reversed(history_messages):
+    sendingMessageBody = '{0}: {1}'.format(historyMessage.sending_nick, historyMessage.body)
+    return_messages.append(IrcMessage.new_private_message(sendingMessageBody, message.sending_nick))
+  return return_messages
+
+@respondtoregex('.*')
+def runtime_evaluation_response(message, **extra_args):
+  """Evaluates for every message.
+
+    Used to evaluate a regex at runtime instead of when the module
+    is instantiated.  I check for the bot name in the regex which
+    isn't available during instantiation.
+
+  """
+  #Return if it is a bot command
+  if message.is_bot_command:
+    return
+
+  #Regex for mentioning the bot name
+  quote_regex = '.*{0}.*'.format(IrcBot.shared_instance().nick)
+  quote_expression = re.compile(quote_regex, re.IGNORECASE)
+  didMentionBot = quote_expression.match(message.body) != None
+
+  #Regex for people talking about bot git
+  git_regex = '(.*git.*{0}.*)|(.*{0}.*git.*)'.format(IrcBot.shared_instance().nick)
+  git_expression = re.compile(git_regex, re.IGNORECASE)
+  didMentionGit = git_expression.match(message.body) != None
+
+  #Return message for one or the other
+  if didMentionGit:
+    return message.new_response_message('My source is at https://github.com/Mov1s/RafiBot.git')
+  elif didMentionBot:
+    return message.new_response_message(random_rafi_quote())
+
+
+@respondtoidletime(1800)
+def bewbs_response(**extra_args):
+  """Respond with 'Bewbs'."""
+  previousMessage = IrcBot.shared_instance().message_log[-1]
+  if not message_is_bewbs(previousMessage):
+    return IrcMessage.new_room_message('Bewbs')
+
+@respondtoregex('.*(shiva).*')
+def shiva_response(message, **extra_args):
+  """Respond with shiva blast."""
+  return IrcMessage.new_room_message('SHIVAKAMINISOMAKANDAKRAAAAAAAM!')
+
+@respondtobotcommand('adduser')
+def add_user_response(message, **extra_args):
+  """Register a new user."""
+  response = ''
+  if len(message.bot_command_arguments) < 4:
+    response = 'syntax is "adduser <FirstName> <LastName> <Email> <MobileNumber>"'
+  else:
+    args = message.bot_command_arguments
+    response = createUser(args[0], args[1], args[2], args[3])
+
+  return message.new_response_message(response)
+
+@respondtobotcommand('addnick')
+def add_nick_response(message, **extra_args):
+  """Add a new alias or nick for a user."""
+  response = ''
+  if len(message.bot_command_arguments) < 2:
+    response = 'syntax is "addnick <Email> <Nick>"'
+  else:
+    args = message.bot_command_arguments
+    response = addNickForEmail(args[0], args[1])
+
+  return message.new_response_message(response)
+
+@respondtobotcommand('userinfo')
+def user_info_response(message, **extra_args):
+  """Return user details for a search string."""
+  response = ''
+  if len(message.bot_command_arguments) < 1:
+    response = 'syntax is "userinfo <SearchString>"'
+  else:
+    args = message.bot_command_arguments
+    response = informationForUser(args[0])
+
+  return message.new_response_message(response)
 
 
 def createUser(aFirstName, aLastName, anEmail, aMobileNumber):

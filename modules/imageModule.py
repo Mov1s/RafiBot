@@ -7,17 +7,13 @@ from random import randint
 GOOGLE_API_URL = 'http://ajax.googleapis.com'
 URI_FORMAT = '/ajax/services/search/images?v=1.0&rsz=8&q='
 
-class ImageModule(IrcModule):
-
-  def defineResponses(self):
-    self.respondToRegex('(image|img)( me| ma)? (.*)', img_ma_response) 
-
-#Response for the 'img ma' expression
+@respondtoregex('(image|img)( me| ma)? (.*)')
 def img_ma_response(message, **extra_args):
-  query = extra_args['matchGroup'][2]
+  '''Response for the 'img ma' expression'''
+  query = extra_args['match_group'][2]
   image_link = random_image_link_for_query(query)
   response = image_link if image_link else 'Nothing found for ' + query
-  return message.newResponseMessage(response)
+  return message.new_response_message(response)
 
 #Searches google images for query and returns a random link
 def random_image_link_for_query(query):

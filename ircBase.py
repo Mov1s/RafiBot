@@ -11,106 +11,8 @@ logging.basicConfig(filename='modules.log', level=logging.ERROR)
 config = ConfigParser.SafeConfigParser()
 config.read('configs/ircBase.conf')
 
-CONST_NETWORK = config.get('Connection', 'server')
-CONST_PORT = int(config.get('Connection', 'port'))
-CONST_ROOM = config.get('Connection', 'room')
-CONST_NICK = config.get('Connection', 'nick')
 CONST_DB_USER = config.get('MySql', 'username')
 CONST_DB_PASSWORD = config.get('MySql', 'password')
-
-class IrcConnection():
-    """A class representing an IRC connection.
-
-    Keep a reference to the IRC socket we are communicating on.
-    Keep a reference of the last 20 messages sent over a channel.
-
-    """
-    def __init__(self):
-        """Intialize all the properties."""
-        self.network = None
-        self.port = None
-        self.room = None
-        self.nick = None
-
-        self.connection = None
-        self.messageLog = []
-        self.lastMessageTimestamp = time.time()
-
-    @staticmethod
-    def newConnection(aNetwork = CONST_NETWORK, aPort = CONST_PORT, aRoom = CONST_ROOM, aNick = CONST_NICK):
-        """Create and return an IRC connection using the constants at the top of the file."""
-        newConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        newConnection.connect((aNetwork, aPort))
-        print newConnection.recv(4096)
-        newConnection.send('NICK ' + aNick + '\r\n')
-        newConnection.send('USER ' + aNick + ' ' + aNick + ' ' + aNick + ' :Python IRC\r\n')
-        newConnection.send('JOIN ' + aRoom + '\r\n')
-
-        aConnection = IrcConnection()
-        aConnection.connection = newConnection
-        aConnection.network = aNetwork
-        aConnection.port = aPort
-        aConnection.room = aRoom
-        aConnection.nick = aNick
-        return aConnection
-
-    def respondToServerMessages(self):
-        """Main message handler for an IRC connection.
-
-        Recieve messages from the server.
-        Respond if it is a ping request.
-        Otherwise log the message.
-
-        """
-
-        message = self.connection.recv(4096)
-
-        #Check if the connection is still up
-        if len(message) == 0:
-          return None
-
-        message = IrcMessage.newMessageFromRawMessage(message)
-        if message.isPing:
-            self.sendPongForPing(message)
-        elif not message.isServerMessage and message.isRoomMessage:
-						self.addMessageToLog(message)
-        return message
-
-    def addMessageToLog(self, aMessage):
-        """Add a message to the message log."""
-        self.messageLog.append(aMessage)
-        if not aMessage.isPing:
-            self.lastMessageTimestamp = time.time()
-        if len(self.messageLog) > 40:
-            del self.messageLog[0]
-
-    def sendPongForPing(self, aPingMessage):
-        """Send a PONG message message to the server when a PING is issued."""
-        self.connection.send ('PONG ' + aPingMessage.rawMessage.split()[1] + '\r\n')
-
-    def sendMessage(self, aMessage):
-        """Send a message to the IRC server."""
-        if aMessage.isRoomMessage:
-            fullMessage = aMessage.recievingRoom + ' :' + aMessage.body + '\r\n'
-            self.connection.send('PRIVMSG ' + fullMessage)
-        elif aMessage.isPrivateMessage:
-            fullMessage = aMessage.privateMessageRecipient + ' :' + aMessage.body + '\r\n'
-            self.connection.send('PRIVMSG ' + fullMessage)
-        elif aMessage.isServerMessage:
-            self.connection.send(aMessage.body + '\r\n')
-
-        if not aMessage.isOffRecord: self.addMessageToLog(aMessage)
-
-    def sendMessages(self, someMessages):
-        """Send a list of messages to the IRC server."""
-        for message in someMessages:
-            self.sendMessage(message)
-
-    def noRoomActivityForTime(self, timeInSeconds):
-        """Return True if there has been any activity in a given period of time."""
-        currentTime = time.time()
-        return currentTime - self.lastMessageTimestamp >= timeInSeconds
-
 
 class IrcMessage():
     """Class representing an IRC message.
@@ -122,265 +24,413 @@ class IrcMessage():
     def __init__(self):
         """Initialize all the properties."""
         #Message properties
-        self.rawMessage = None
+        self.raw_message = None
         self.body = None
-        self.botCommand = None
-        self.sendingNick = None
-        self.recievingRoom = None
-        self.privateMessageRecipient = None
+        self.bot_command = None
+        self.sending_nick = None
+        self.recieving_room = None
+        self.private_message_recipient = None
         self.links = []
-        self.botCommandArguments = []
+        self.bot_command_arguments = []
 
         #Usefull flags
-        self.hasLinks = False
-        self.isPrivateMessage = False
-        self.isServerMessage = False
-        self.isRoomMessage = False
-        self.isPing = False
-        self.isBotCommand = False
-        self.isOffRecord = False
+        self.has_links = False
+        self.is_private_message = False
+        self.is_server_message = False
+        self.is_room_message = False
+        self.is_ping = False
+        self.is_bot_command = False
+        self.is_off_record = False
 
     @staticmethod
-    def newMessageFromRawMessage(aRawMessage):
+    def new_message_from_raw_message(a_raw_message):
         """Create and return a new IrcMessage object from a raw irc message string."""
-        newMessage = IrcMessage()
-        newMessage.rawMessage = aRawMessage
+        new_message = IrcMessage()
+        new_message.raw_message = a_raw_message
 
         #Get sending nick
-        nickExpression = re.compile(':(.*)!', re.IGNORECASE)
-        match = nickExpression.search(newMessage.rawMessage[:18])
+        nick_expression = re.compile(':(.*)!', re.IGNORECASE)
+        match = nick_expression.search(new_message.raw_message[:18])
         if match:
-            newMessage.sendingNick = match.group(1).strip()
+            new_message.sending_nick = match.group(1).strip()
         else:
-            newMessage.isServerMessage = True
+            new_message.is_server_message = True
 
         #Get private message or room message
-        if not newMessage.isServerMessage:
-            roomExpression = re.compile('PRIVMSG (#.*) :(.*)', re.IGNORECASE)
-            match = roomExpression.search(newMessage.rawMessage)
+        if not new_message.is_server_message:
+            room_expression = re.compile('PRIVMSG (#.*) :(.*)', re.IGNORECASE)
+            match = room_expression.search(new_message.raw_message)
             if match:
-                newMessage.body = match.group(2).strip()
-                newMessage.recievingRoom = match.group(1).strip()
-                newMessage.isRoomMessage = True
+                new_message.body = match.group(2).strip()
+                new_message.recieving_room = match.group(1).strip()
+                new_message.is_room_message = True
             else:
-                pmExpression = re.compile('PRIVMSG (.*) :(.*)', re.IGNORECASE)
-                match = pmExpression.search(newMessage.rawMessage)
+                pm_expression = re.compile('PRIVMSG (.*) :(.*)', re.IGNORECASE)
+                match = pm_expression.search(new_message.raw_message)
                 if match:
-                    newMessage.body = match.group(2).strip()
-                    newMessage.privateMessageRecipient = match.group(1).strip()
-                    newMessage.isPrivateMessage = True
+                    new_message.body = match.group(2).strip()
+                    new_message.private_message_recipient = match.group(1).strip()
+                    new_message.is_private_message = True
 
         #Get bot command
-        if not newMessage.isServerMessage:
-            bcExpression = re.compile(':!' + CONST_NICK + ' (.*)', re.IGNORECASE)
-            match = bcExpression.search(newMessage.rawMessage)
+        if not new_message.is_server_message and new_message.body != None:
+            bc_expression = re.compile('^!(.*)', re.IGNORECASE)
+            match = bc_expression.search(new_message.body)
             if match:
-                newMessage.botCommand = match.group(1).split()[0].strip()
-                newMessage.botCommandArguments = match.group(1).split()[1:]
-                newMessage.isBotCommand = True
+                new_message.bot_command = match.group(1).split()[0].strip()
+                new_message.bot_command_arguments = match.group(1).split()[1:]
+                new_message.is_bot_command = True
 
         #Get ping
-        if newMessage.isServerMessage:
-            pingExpression = re.compile('PING (.*)', re.IGNORECASE)
-            match = pingExpression.search(newMessage.rawMessage)
+        if new_message.is_server_message:
+            ping_expression = re.compile('PING (.*)', re.IGNORECASE)
+            match = ping_expression.search(new_message.raw_message)
             if match:
-                newMessage.isPing = True
+                new_message.is_ping = True
 
         #Get links
-        if not newMessage.body == None:
-            wordArray = newMessage.body.split()
-            for word in wordArray:
+        if not new_message.body == None:
+            word_array = new_message.body.split()
+            for word in word_array:
                 url = urlparse(word)
                 if url.scheme == 'http' or url.scheme == 'https':
-                    newMessage.hasLinks = True
-                    newMessage.links.append(word)
+                    new_message.has_links = True
+                    new_message.links.append(word)
 
-        return newMessage
+        return new_message
 
     @staticmethod
-    def newRoomMessage(theMessageBody, aRoom = None, offRecord = False):
+    def new_room_message(the_message_body, off_record = False):
         """Create and return a new IrcMessage object to be sent out to a room."""
-        if aRoom == None: aRoom = CONST_ROOM
-        spoofRawMessage = ':{0}! PRIVMSG {1} :{2}\r\n'.format(CONST_NICK, aRoom, theMessageBody)
-        spoofMessage = IrcMessage.newMessageFromRawMessage(spoofRawMessage)
-        spoofMessage.isOffRecord = offRecord
-        return spoofMessage
+        spoof_message = IrcMessage()
+        spoof_message.is_room_message = True
+        spoof_message.body = the_message_body
+        spoof_message.is_off_record = off_record
+        return spoof_message
 
     @staticmethod
-    def newPrivateMessage(theMessageBody, aRecievingNick, offRecord = True):
+    def new_private_message(the_message_body, a_recieving_nick, off_record = True):
         """Create and return a new IrcMessage object to be sent out to a nick."""
-        spoofRawMessage = ':{0}! PRIVMSG {1} :{2}\r\n'
-        spoofRawMessage = spoofRawMessage.format(CONST_NICK, aRecievingNick, theMessageBody)
-        spoofMessage = IrcMessage.newMessageFromRawMessage(spoofRawMessage)
-        spoofMessage.isOffRecord = offRecord
-        return spoofMessage
+        spoof_message = IrcMessage()
+        spoof_message.is_private_message = True
+        spoof_message.private_message_recipient = a_recieving_nick
+        spoof_message.body = the_message_body
+        spoof_message.is_off_record = off_record
+        return spoof_message
 
     @staticmethod
-    def newServerMessage(theMessageBody, offRecord = True):
+    def new_server_message(the_message_body, off_record = True):
         """Create and return a new IrcMessage object to be sent out to the server."""
-        spoofMessage = IrcMessage()
-        spoofMessage.body = theMessageBody
-        spoofMessage.isServerMessage = True
-        spoofMessage.isOffRecord = offRecord
-        return spoofMessage
+        spoof_message = IrcMessage()
+        spoof_message.body = the_message_body
+        spoof_message.is_server_message = True
+        spoof_message.is_off_record = off_record
+        return spoof_message
 
-    def newResponseMessage(self, theMessageBody):
+    def new_response_message(self, the_message_body):
         """Create and return a new IrcMessage object that is a direct response to this message.
 
         If this message is a PM then the response will be a PM back to that person.
         If this message is anything else the response is a room message.
 
         """
-        newMessage = None
-        if self.isPrivateMessage:
-            newMessage = IrcMessage.newPrivateMessage(theMessageBody, self.sendingNick)
+        new_message = None
+        if self.is_private_message:
+            new_message = IrcMessage.new_private_message(the_message_body, self.sending_nick)
         else:
-            newMessage = IrcMessage.newRoomMessage(theMessageBody, self.recievingRoom)
-        return newMessage
-
-
-class IrcModule:
-    """Class representing an IRC module.
-
-    Keep a list of filters and actions to evaluate against messages.
-
-    """
-    def __init__(self):
-        self.ircBot = None
-        self.regexActions = {}
-        self.idleActions = {}
-        self.botCommandActions = {}
-
-    def do(self, someMessage):
-        """Evaluate a message against all of the filters and return a list of messages."""
-        regexResponses = self.evaluateRegexes(someMessage)
-        idleResponses = self.evaluateIdleTimes()
-        botCommandResponses = self.evaluateBotCommands(someMessage)
-        return regexResponses + idleResponses + botCommandResponses
-
-    def defineResponses(self):
-        """Define the filters this module responds too.  Override in subclasses."""
-        return
-
-    def evaluateRegexes(self, someMessage):
-        """Check all of the Regex filters and return a list of messages."""
-        #Return imediatley if the message does not have a body
-        if not someMessage.body:
-            return []
-
-        #Test the message against each regex filter in this module
-        responses = []
-        for regex, action in self.regexActions.iteritems():
-            matchGroup = self.evaluateMessageAgainstRegex(regex, someMessage.body)
-            if matchGroup != None:
-                messages = action(someMessage, matchGroup=matchGroup)
-                if isinstance(messages, list):
-                   responses = responses + messages
-                elif messages:
-                    responses.append(messages)
-        return responses
-
-    def evaluateIdleTimes(self):
-        """Check all of the idle time filters and return a list of messages."""
-        responses = []
-        for idleTime, action in self.idleActions.iteritems():
-            if(self.ircBot.irc.noRoomActivityForTime(idleTime)):
-                messages = action(ircConnection=self.ircBot.irc)
-                if isinstance(messages, list):
-                   responses = responses + messages
-                elif messages:
-                    responses.append(messages)
-        return responses
-
-    def evaluateBotCommands(self, someMessage):
-        """Check all of the bot command filters and return a list of messages."""
-        #Return imediatley if the message is not a bot command
-        if not someMessage.isBotCommand:
-            return []
-
-        #Test the message against each bot command filter in this module
-        responses = []
-        for botCommand, action in self.botCommandActions.iteritems():
-            if botCommand == someMessage.botCommand:
-                messages = action(someMessage)
-                if isinstance(messages, list):
-                    responses = responses + messages
-                elif messages:
-                    responses.append(messages)
-        return responses
-
-    def evaluateMessageAgainstRegex(self, aRegex, aMessageBody):
-        """Perform a regex on a message body and return an array of match parts."""
-        expression = re.compile(aRegex, re.IGNORECASE)
-        match = expression.match(aMessageBody)
-        return match.groups() if match else None
-
-    def respondToRegex(self, aKeyword, anAction):
-        """Register a regex to respond to and the action to perform."""
-        self.regexActions[aKeyword] = anAction
-
-    def respondToIdleTime(self, timeInSeconds, anAction):
-        """Register an idle time to respond to and the action to perform."""
-        self.idleActions[timeInSeconds] = anAction
-
-    def respondToBotCommand(self, aBotCommand, anAction):
-        """Register a bot command to respond to and the action to perform."""
-        self.botCommandActions[aBotCommand] = anAction
+            new_message = IrcMessage.new_room_message(the_message_body)
+        return new_message
 
 
 class IrcBot(object):
-    """Class representing an IRC bot.
+    """Singleton class representing an IRC bot.
 
     Keep a connection to the server and respond to IRC actiity.
-    Keep a list of modules to be run against IRC activity.
 
     """
+    _instance = None
+
     def __init__(self):
         """Initialize the bot with the default IRC connection."""
-        self._databaseConnection = None
-        self.irc = IrcConnection.newConnection()
-        self.modules = []
+        self._database_connection = None
+        self.response_evaluator = ResponseEvaluator()
 
-    def attachModule(self, aModule):
-        """Add a movule to the list of modules this bot should evaluate."""
-        aModule.ircBot = self
-        self.modules.append(aModule)
+        self.nick = None
+        self.room = None
+        self._server = None
+        self._server_port = None
 
-    def databaseConnection(self):
+        self.connection = None
+        self.message_log = []
+        self.last_message_timestamp = time.time()
+
+    @classmethod
+    def shared_instance(cls):
+        '''Singleton instance retriever.  Creates a new instance if there is not already one.'''
+        if IrcBot._instance == None:
+            IrcBot._instance = IrcBot()
+        return IrcBot._instance
+
+    def connect(self, attempt = 0, max_attempts = 10):
+        '''Attempt connecting to the IRC server
+        Retry up to max_attempts before giving up and failing'''
+
+        print "Attempting connection {0}...".format(attempt)
+
+        #Configure the settings if they are not already set up
+        if not self.is_configured(): self.configure_from_file()
+
+        #Attempt connection to the irc server
+        connection_was_successful = False 
+        try:
+            newConnection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            newConnection.connect((self._server, self._server_port))
+            print newConnection.recv(4096)
+
+            newConnection.send('NICK ' + self.nick + '\r\n')
+            newConnection.send('USER ' + self.nick + ' ' + self.nick + ' ' + self.nick + ' :Python IRC\r\n')
+            newConnection.send('JOIN ' + self.room + '\r\n')
+            self.connection = newConnection
+            connection_was_successful = True 
+        except Exception, e:
+            connection_was_successful = False 
+
+        #If connection failed recurse and try again
+        if not connection_was_successful and attempt < 10:
+            connection_was_successful = self.connect(attempt + 1, max_attempts)
+        return connection_was_successful
+
+    def _wait_for_message_from_server(self, attempt = 0, max_attempts = 10):
+        """Main message handler for an IRC connection.
+
+        Recieve messages from the server.
+        Respond if it is a ping request.
+        Otherwise log the message.
+
+        """
+
+        message = self.connection.recv(4096) if self.connection else None
+
+        #Check if the connection is still up
+        if message == None or len(message) == 0:
+            if not self.connect() or attempt >= max_attempts:
+                return None
+            else:
+                return self._wait_for_message_from_server(attempt + 1)
+
+        #Respond to ping or add to log
+        message = IrcMessage.new_message_from_raw_message(message)
+        if message.is_ping:
+            self._send_pong_for_ping(message)
+        elif not message.is_server_message and message.is_room_message:
+            self._add_message_to_log(message)
+        return message
+
+    def _send_pong_for_ping(self, a_ping_message):
+        """Send a PONG message message to the server when a PING is issued."""
+        self.connection.send ('PONG ' + a_ping_message.raw_message.split()[1] + '\r\n')
+
+    def _add_message_to_log(self, a_message):
+        """Add a message to the message log."""
+
+        self.message_log.append(a_message)
+        if not a_message.is_ping:
+            self.last_message_timestamp = time.time()
+        if len(self.message_log) > 40:
+            del self.message_log[0]
+
+    def send_message(self, a_message):
+        """Send a message to the IRC server."""
+        if a_message.is_room_message:
+            full_message = self.room + ' :' + a_message.body + '\r\n'
+            self.connection.send('PRIVMSG ' + full_message)
+        elif a_message.is_private_message:
+            full_message = a_message.private_message_recipient + ' :' + a_message.body + '\r\n'
+            self.connection.send('PRIVMSG ' + full_message)
+        elif a_message.is_server_message:
+            self.connection.send(a_message.body + '\r\n')
+
+        a_message.sending_nick = self.nick
+        if not a_message.is_off_record: self._add_message_to_log(a_message)
+
+    def send_messages(self, some_messages):
+        """Send a list of messages to the IRC server."""
+        for message in some_messages:
+            self.send_message(message)
+
+    def is_configured(self):
+        '''Checks if the values needed to connect to an irc server are set'''
+        return self.nick and self.room and self._server and self._server_port
+
+    def no_room_activity_for_time(self, time_in_seconds):
+        """Return True if there has been any activity in a given period of time."""
+        current_time = time.time()
+        return current_time - self.last_message_timestamp >= time_in_seconds
+
+    def configure_from_file(self, a_config_file = 'configs/ircBase.conf'):
+        '''Configure the connection params of this bot from a config file'''
+        config = ConfigParser.SafeConfigParser()
+        config.read(a_config_file)
+
+        self._server = config.get('Connection', 'server')
+        self._server_port = int(config.get('Connection', 'port'))
+        self.room = config.get('Connection', 'room')
+        self.nick = config.get('Connection', 'nick')
+
+    def database_connection(self):
         """Construct a database connection if there is not one and return it."""
-        if not self._databaseConnection:
-            self._databaseConnection = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD)
-        return self._databaseConnection
+        if not self._database_connection:
+            self._database_connection = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD)
+        return self._database_connection
 
     def run(self):
         """Start the bot responding to IRC activity."""
-        #Let all the modules define their responses
-        for module in self.modules:
-            module.defineResponses()
 
         #Start the main loop
         while True:
-            server_message = self.irc.respondToServerMessages()
 
-            #Reconnect if needed
+            server_message = self._wait_for_message_from_server()
+
+            #No server message means unable to connect to server
             if not server_message:
-                self.irc = IrcConnection.newConnection()
-                continue
+                print "Failed to connect to the server..."
+                break
 
             #Perform the module actions
-            messages = []
-            for module in self.modules:
-                try:
-                    messages = messages + module.do(server_message)
-                except:
-                    logging.exception(module.__class__.__name__)
-                    messageString = "Module Error: " + module.__class__.__name__
-                    messages.append(IrcMessage().newRoomMessage(messageString))
-            self.irc.sendMessages(messages)
+            messages = self.response_evaluator.evaluate_responses_for_message(server_message)
+            self.send_messages(messages)
 
             #Close the database connection
-            if self._databaseConnection:
-              self._databaseConnection.close()
-            self._databaseConnection = None
+            if self._database_connection:
+              self._database_connection.close()
+            self._database_connection = None
 
-            print server_message.rawMessage
+            print server_message.raw_message
+
+
+class ResponseEvaluator:
+    """Class for keeping track of responses and evaluating them
+
+    Responses can be registered with the evaluator and when requested it will evaluate all of the responses
+    against an IrcMessage and return a list of response messages.
+
+    """
+
+    def __init__(self, some_responses = []):
+        '''Initialize the evaluator with some responses'''
+        self._responses = some_responses
+
+    def register_response(self, a_response):
+        '''Adds a response to the list of responses to be evaluated against a message'''
+        self._responses.append(a_response)
+
+    def evaluate_responses_for_message(self, a_message):
+        '''Evaluates all registered responses against an IrcMessage, returns a list of messages'''
+        response_messages = []
+        for response in self._responses:
+            if response.type == Response.REGEX_RESPONSE:
+                response_messages = response_messages + self.evaluate_regex_response(response, a_message)
+            elif response.type == Response.COMMAND_RESPONSE:
+                response_messages = response_messages + self.evaluate_bot_command(response, a_message)
+            elif response.type == Response.IDLE_RESPONSE:
+                response_messages = response_messages + self.evaluate_idle_time(response)
+        return response_messages
+
+    def evaluate_regex_response(self, a_response, a_message):
+        '''Check a regex filter and return a list of messages.'''
+        #Return imediatley if the message does not have a body
+        if not a_message.body:
+            return []
+
+        #Setup
+        response_messages = []
+        regex = a_response.condition
+        action = a_response.action
+
+        #Test the message against the regex filter
+        expression = re.compile(regex, re.IGNORECASE)
+        match = expression.match(a_message.body)
+        match_group =  match.groups() if match else None
+
+        #Return response messages if the regex matched
+        if match_group != None:
+            messages = action(a_message, match_group = match_group)
+            if isinstance(messages, list):
+                response_messages = messages
+            elif messages:
+                response_messages = [messages]
+        return response_messages
+
+    def evaluate_bot_command(self, a_response, a_message):
+        '''Check a bot command filter and return a list of messages.'''
+        #Return imediatley if the message is not a bot command
+        if not a_message.is_bot_command:
+            return []
+
+        #Setup
+        response_messages = []
+        bot_command = a_response.condition
+        action = a_response.action
+
+        #Return response messages if the bot command matched
+        if bot_command == a_message.bot_command:
+            messages = action(a_message)
+            if isinstance(messages, list):
+                response_messages = messages
+            elif messages:
+                response_messages = [messages]
+        return response_messages
+
+    def evaluate_idle_time(self, a_response):
+        '''Check an idle time filter and return a list of messages.'''
+
+        #Setup
+        response_messages = []
+        idle_time = a_response.condition
+        action = a_response.action
+
+        #Return response messages if the idle time has been passed
+        if(IrcBot.shared_instance().no_room_activity_for_time(idle_time)):
+            messages = action()
+            if isinstance(messages, list):
+               response_messages = messages
+            elif messages:
+                response_messages = [messages]
+        return response_messages
+
+
+class Response:
+    """Class representing a response filter"""
+
+    REGEX_RESPONSE = 'regex'
+    COMMAND_RESPONSE = 'botcommand'
+    IDLE_RESPONSE = 'idletime'
+
+    def __init__(self, a_type, a_condition, an_action):
+        self.type = a_type
+        self.condition = a_condition
+        self.action = an_action
+
+def respondtoregex(regex):
+    '''Registers a regex filter response with the shared IrcBot'''
+    def wrapper(func):
+        response = Response(Response.REGEX_RESPONSE, regex, func)
+        IrcBot.shared_instance().response_evaluator.register_response(response)
+        return func
+    return wrapper
+
+def respondtobotcommand(command):
+    '''Registers a bot command filter response with the shared IrcBot'''
+    def wrapper(func):
+        response = Response(Response.COMMAND_RESPONSE, command, func)
+        IrcBot.shared_instance().response_evaluator.register_response(response)
+        return func
+    return wrapper
+
+def respondtoidletime(idle_time):
+    '''Registers an idle time response with the shared IrcBot'''
+    def wrapper(func):
+        response = Response(Response.IDLE_RESPONSE, idle_time, func)
+        IrcBot.shared_instance().response_evaluator.register_response(response)
+        return func
+    return wrapper
