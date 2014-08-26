@@ -10,6 +10,7 @@ config = ConfigParser.SafeConfigParser()
 config.read('configs/weatherModule.conf')
 
 CONST_API_KEY = config.get('WeatherModule', 'apiKey')
+CONST_RADAR_ZOOM = config.get('WeatherModule', 'radarZoom')
 
 class WeatherModule(IrcModule):
 	def defineResponses(self):
@@ -59,7 +60,7 @@ def wunderMap(message, **extra_args):
         location = location.replace(',', '%2C')
         location = location.replace(' ', '+')
 
-        response = "http://www.wunderground.com/wundermap/?lat=" + latitude + "&lon=" + longitude + "&zoom=8&pin=" + location + "&rad=1"
+        response = "http://www.wunderground.com/wundermap/?lat=" + latitude + "&lon=" + longitude + "&zoom=" + CONST_RADAR_ZOOM + "&pin=" + location + "&rad=1"
         return message.newResponseMessage(response)
     except:
         response = "Multiple results returned; please use a more specific search string."
