@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*- 
+# -*- coding: utf8 -*-
 from ircBase import *
 from random import randint
 import MySQLdb as mdb
@@ -23,7 +23,7 @@ class BaseModule(IrcModule):
     self.respondToBotCommand('addnick', self.add_nick_response)
     self.respondToBotCommand('userinfo', self.user_info_response)
     self.respondToRegex('.*', self.runtime_evaluation_response)
-    
+
   def quit_response(self, message, **extra_args):
     """Respond to a command to quit."""
     later_msg = IrcMessage.newRoomMessage('Later fags')
@@ -98,7 +98,7 @@ class BaseModule(IrcModule):
   def bewbs_response(self, **extra_args):
     """Respond with 'Bewbs'."""
     previousMessage = self.ircBot.irc.messageLog[-1]
-    if not message_is_bewbs(previousMessage):
+    if previousMessage.sendingNick != self.ircBot.irc.nick:
       return IrcMessage.newRoomMessage('Bewbs')
 
   def shiva_response(self, message, **extra_args):
@@ -113,7 +113,7 @@ class BaseModule(IrcModule):
     else:
       args = message.botCommandArguments
       response = createUser(args[0], args[1], args[2], args[3])
-  
+
     return message.newResponseMessage(response)
 
   def add_nick_response(self, message, **extra_args):
@@ -124,7 +124,7 @@ class BaseModule(IrcModule):
     else:
       args = message.botCommandArguments
       response = addNickForEmail(args[0], args[1])
-  
+
     return message.newResponseMessage(response)
 
   def user_info_response(self, message, **extra_args):
@@ -135,7 +135,7 @@ class BaseModule(IrcModule):
     else:
       args = message.botCommandArguments
       response = informationForUser(args[0])
-  
+
     return message.newResponseMessage(response)
 
 
@@ -166,7 +166,7 @@ def addNickForEmail(anEmail, aNick):
   cursor.execute("SELECT id FROM Nicks n WHERE n.nick = %s", (aNick))
   if cursor.rowcount != 0:
     return 'This nick is already in use'
-  
+
   #Get the user to link the nick to
   userId = userFirstName  = ''
   cursor.execute("SELECT id, firstName FROM Users u WHERE u.email = %s", (anEmail))
@@ -227,6 +227,3 @@ def random_rafi_quote():
 
     quoteIndex = randint(0, len(rafiQuotes) - 1)
     return rafiQuotes[quoteIndex]
-
-def message_is_bewbs(aMessage):
-  return aMessage.body.find('Bewbs') != -1
