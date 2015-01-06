@@ -145,13 +145,13 @@ def createUser(aFirstName, aLastName, anEmail, aMobileNumber):
   cursor = conn.cursor()
 
   #Don't allow overlap of email address or phone number
-  cursor.execute("SELECT id FROM Users u WHERE u.email = %s OR u.mobileNumber = %s", (anEmail, aMobileNumber))
+  cursor.execute("SELECT id FROM Users u WHERE u.email = %s OR u.mobileNumber = %s", (anEmail, aMobileNumber,))
   if cursor.rowcount != 0:
     return 'This mobile number or email is already in use'
 
   #Add the user
   creationTime = time.strftime('%Y-%m-%d %H:%M:%S')
-  cursor.execute('INSERT INTO Users (firstName, lastName, email, mobileNumber, creationDate) VALUES (%s, %s, %s, %s, %s)', (aFirstName, aLastName, anEmail, aMobileNumber, creationTime))
+  cursor.execute('INSERT INTO Users (firstName, lastName, email, mobileNumber, creationDate) VALUES (%s, %s, %s, %s, %s)', (aFirstName, aLastName, anEmail, aMobileNumber, creationTime,))
   conn.commit()
   cursor.close()
 
@@ -163,13 +163,13 @@ def addNickForEmail(anEmail, aNick):
   cursor = conn.cursor()
 
   #Don't allow overlap of nicks
-  cursor.execute("SELECT id FROM Nicks n WHERE n.nick = %s", (aNick))
+  cursor.execute("SELECT id FROM Nicks n WHERE n.nick = %s", (aNick,))
   if cursor.rowcount != 0:
     return 'This nick is already in use'
 
   #Get the user to link the nick to
   userId = userFirstName  = ''
-  cursor.execute("SELECT id, firstName FROM Users u WHERE u.email = %s", (anEmail))
+  cursor.execute("SELECT id, firstName FROM Users u WHERE u.email = %s", (anEmail,))
   if cursor.rowcount == 0:
     return 'There is no user with this email address'
   else:
@@ -179,7 +179,7 @@ def addNickForEmail(anEmail, aNick):
 
   #Add the nick
   creationTime = time.strftime('%Y-%m-%d %H:%M:%S')
-  cursor.execute('INSERT INTO Nicks (nick, userId, creationDate) VALUES (%s, %s, %s)', (aNick, userId, creationTime))
+  cursor.execute('INSERT INTO Nicks (nick, userId, creationDate) VALUES (%s, %s, %s)', (aNick, userId, creationTime,))
   conn.commit()
   cursor.close()
 
@@ -191,7 +191,7 @@ def informationForUser(theSearchString):
   cursor = conn.cursor()
 
   #Get the user
-  cursor.execute("SELECT n.nick, u.firstName, u.lastName, u.email, u.mobileNumber, unix_timestamp(u.creationDate)  FROM Nicks n LEFT JOIN Users u ON u.id = n.userId WHERE n.nick = %s or u.firstName = %s or u.lastName = %s", (theSearchString, theSearchString, theSearchString))
+  cursor.execute("SELECT n.nick, u.firstName, u.lastName, u.email, u.mobileNumber, unix_timestamp(u.creationDate)  FROM Nicks n LEFT JOIN Users u ON u.id = n.userId WHERE n.nick = %s or u.firstName = %s or u.lastName = %s", (theSearchString, theSearchString, theSearchString,))
   if cursor.rowcount == 0:
     cursor.close()
     return 'No user was found for this string'
