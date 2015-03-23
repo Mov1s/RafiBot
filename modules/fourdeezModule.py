@@ -15,6 +15,7 @@ fourdeez_images.append('https://www.dropbox.com/s/49f0uuvchrp44cj/Fourdeeezzzz%2
 fourdeez_images.append('https://www.dropbox.com/s/7xcqzfkgyc3qghn/Fourdeezz%20Bear.png')
 fourdeez_images.append('https://www.dropbox.com/s/haq780vh93xv97i/Fourdeezz%20Hippo.png')
 fourdeez_images.append('http://i.imgur.com/CA8U1m1.gif')
+fourdeez_images.append('http://i.imgur.com/FQ3IR0m.gif')
 
 class FourdeezModule(IrcModule):
 
