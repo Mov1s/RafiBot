@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*- 
+# -*- coding: utf8 -*-
 from ircBase import *
 from random import randint
 import MySQLdb as mdb
@@ -90,7 +90,7 @@ def runtime_evaluation_response(message, **extra_args):
 def bewbs_response(**extra_args):
   """Respond with 'Bewbs'."""
   previousMessage = IrcBot.shared_instance().message_log[-1]
-  if not message_is_bewbs(previousMessage):
+  if previousMessage.sendingNick != IrcBot.shared_instance().nick:
     return IrcMessage.new_room_message('Bewbs')
 
 @respondtoregex('.*(shiva).*')
@@ -134,20 +134,19 @@ def user_info_response(message, **extra_args):
 
   return message.new_response_message(response)
 
-
 def createUser(aFirstName, aLastName, anEmail, aMobileNumber):
   """Create a new user in the database."""
   conn = mdb.connect('localhost', CONST_DB_USER, CONST_DB_PASSWORD, 'rafiBot')
   cursor = conn.cursor()
 
   #Don't allow overlap of email address or phone number
-  cursor.execute("SELECT id FROM Users u WHERE u.email = %s OR u.mobileNumber = %s", (anEmail, aMobileNumber))
+  cursor.execute("SELECT id FROM Users u WHERE u.email = %s OR u.mobileNumber = %s", (anEmail, aMobileNumber,))
   if cursor.rowcount != 0:
     return 'This mobile number or email is already in use'
 
   #Add the user
   creationTime = time.strftime('%Y-%m-%d %H:%M:%S')
-  cursor.execute('INSERT INTO Users (firstName, lastName, email, mobileNumber, creationDate) VALUES (%s, %s, %s, %s, %s)', (aFirstName, aLastName, anEmail, aMobileNumber, creationTime))
+  cursor.execute('INSERT INTO Users (firstName, lastName, email, mobileNumber, creationDate) VALUES (%s, %s, %s, %s, %s)', (aFirstName, aLastName, anEmail, aMobileNumber, creationTime,))
   conn.commit()
   cursor.close()
 
@@ -159,13 +158,13 @@ def addNickForEmail(anEmail, aNick):
   cursor = conn.cursor()
 
   #Don't allow overlap of nicks
-  cursor.execute("SELECT id FROM Nicks n WHERE n.nick = %s", (aNick))
+  cursor.execute("SELECT id FROM Nicks n WHERE n.nick = %s", (aNick,))
   if cursor.rowcount != 0:
     return 'This nick is already in use'
-  
+
   #Get the user to link the nick to
   userId = userFirstName  = ''
-  cursor.execute("SELECT id, firstName FROM Users u WHERE u.email = %s", (anEmail))
+  cursor.execute("SELECT id, firstName FROM Users u WHERE u.email = %s", (anEmail,))
   if cursor.rowcount == 0:
     return 'There is no user with this email address'
   else:
@@ -175,7 +174,7 @@ def addNickForEmail(anEmail, aNick):
 
   #Add the nick
   creationTime = time.strftime('%Y-%m-%d %H:%M:%S')
-  cursor.execute('INSERT INTO Nicks (nick, userId, creationDate) VALUES (%s, %s, %s)', (aNick, userId, creationTime))
+  cursor.execute('INSERT INTO Nicks (nick, userId, creationDate) VALUES (%s, %s, %s)', (aNick, userId, creationTime,))
   conn.commit()
   cursor.close()
 
@@ -187,7 +186,7 @@ def informationForUser(theSearchString):
   cursor = conn.cursor()
 
   #Get the user
-  cursor.execute("SELECT n.nick, u.firstName, u.lastName, u.email, u.mobileNumber, unix_timestamp(u.creationDate)  FROM Nicks n LEFT JOIN Users u ON u.id = n.userId WHERE n.nick = %s or u.firstName = %s or u.lastName = %s", (theSearchString, theSearchString, theSearchString))
+  cursor.execute("SELECT n.nick, u.firstName, u.lastName, u.email, u.mobileNumber, unix_timestamp(u.creationDate)  FROM Nicks n LEFT JOIN Users u ON u.id = n.userId WHERE n.nick = %s or u.firstName = %s or u.lastName = %s", (theSearchString, theSearchString, theSearchString,))
   if cursor.rowcount == 0:
     cursor.close()
     return 'No user was found for this string'
@@ -223,6 +222,3 @@ def random_rafi_quote():
 
     quoteIndex = randint(0, len(rafiQuotes) - 1)
     return rafiQuotes[quoteIndex]
-
-def message_is_bewbs(aMessage):
-  return aMessage.body.find('Bewbs') != -1

@@ -15,6 +15,7 @@ fourdeez_images.append('https://www.dropbox.com/s/49f0uuvchrp44cj/Fourdeeezzzz%2
 fourdeez_images.append('https://www.dropbox.com/s/7xcqzfkgyc3qghn/Fourdeezz%20Bear.png')
 fourdeez_images.append('https://www.dropbox.com/s/haq780vh93xv97i/Fourdeezz%20Hippo.png')
 fourdeez_images.append('http://i.imgur.com/CA8U1m1.gif')
+fourdeez_images.append('http://i.imgur.com/FQ3IR0m.gif')
 
 class FourdeezModule(IrcModule):
 
@@ -30,7 +31,7 @@ class FourdeezModule(IrcModule):
   def fourdeez_images_response(self, **extraArgs):
     previousMessage = self.ircBot.irc.messageLog[-1]
 
-    if today_is_thursday() and not message_is_fourdeez_image(previousMessage):
+    if today_is_thursday() and previousMessage.sendingNick != self.ircBot.irc.nick:
       image_index = randint(0, len(fourdeez_images) - 1)
       return IrcMessage.newRoomMessage('FOURDEEZ!! ' + fourdeez_images[image_index])
 
@@ -39,17 +40,12 @@ class FourdeezModule(IrcModule):
       tt_expression = re.compile('.*(tonight)( *)(tonight).*', re.IGNORECASE)
       tonight_tonight_match = tt_expression.match(aMessage.body)
 
-      #Return true if they say 'tonight' and not 'tonight tonight'  
+      #Return true if they say 'tonight' and not 'tonight tonight'
       if not tonight_tonight_match:
         return aMessage.newResponseMessage('tonight tonight*')
 
 def today_is_thursday():
   weekday = date.today().weekday()
   return True if weekday == 3 else False
-
-def message_is_fourdeez_image(aMessage):
-  hasFourdeezText = aMessage.body.find('FOURDEEZ!! ') != -1
-  hasImageLink = aMessage.hasLinks
-  return hasFourdeezText and hasImageLink
 
 

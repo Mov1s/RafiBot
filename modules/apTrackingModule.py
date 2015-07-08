@@ -37,19 +37,19 @@ def startTrackingApForNick(aDatabaseConnection, aMessageNick):
   cursor = aDatabaseConnection.cursor()
   
   #Get the UserId for this nick
-  cursor.execute("SELECT userId FROM rafiBot.Nicks WHERE nick = %s", (aMessageNick))
+  cursor.execute("SELECT userId FROM rafiBot.Nicks WHERE nick = %s", (aMessageNick,))
   if cursor.rowcount == 0:
     return 'This nick is not linked to a registered user'
   userId = cursor.fetchall()[0][0]
 
   #Don't allow the user to start another AP if they still have one open
-  cursor.execute("SELECT id FROM moduleApTracker.ApRecord ar WHERE ar.userId = %s and ar.endTime IS NULL", (userId))
+  cursor.execute("SELECT id FROM moduleApTracker.ApRecord ar WHERE ar.userId = %s and ar.endTime IS NULL", (userId,))
   if cursor.rowcount != 0:
     return 'You are already drinking an AP'
 
   #Start a new AP record
   startTime = time.strftime('%Y-%m-%d %H:%M:%S')
-  cursor.execute("INSERT INTO moduleApTracker.ApRecord (userId, startTime) VALUES (%s, %s)", (userId, startTime))
+  cursor.execute("INSERT INTO moduleApTracker.ApRecord (userId, startTime) VALUES (%s, %s)", (userId, startTime,))
   aDatabaseConnection.commit()
   cursor.close()
 
@@ -62,13 +62,13 @@ def stopTrackingApForNick(aDatabaseConnection, aMessageNick):
   cursor = aDatabaseConnection.cursor()
 
   #Get the UserId for this nick
-  cursor.execute("SELECT userId FROM rafiBot.Nicks WHERE nick = %s", (aMessageNick))
+  cursor.execute("SELECT userId FROM rafiBot.Nicks WHERE nick = %s", (aMessageNick,))
   if cursor.rowcount == 0:
     return 'This nick is not linked to a registered user'
   userId = cursor.fetchall()[0][0]
 
   #Don't allow the user to stop AP if they don't have one started
-  cursor.execute("SELECT id, unix_timestamp(startTime) FROM moduleApTracker.ApRecord ar WHERE ar.userId = %s and ar.endTime IS NULL", (userId))
+  cursor.execute("SELECT id, unix_timestamp(startTime) FROM moduleApTracker.ApRecord ar WHERE ar.userId = %s and ar.endTime IS NULL", (userId,))
   if cursor.rowcount != 0:
     result = cursor.fetchall()
     startTime = result[0][1]
@@ -80,7 +80,7 @@ def stopTrackingApForNick(aDatabaseConnection, aMessageNick):
 
     #Close AP record
     recordId = result[0][0]
-    cursor.execute("UPDATE moduleApTracker.ApRecord SET endTime = %s, duration = %s WHERE id = %s", (endTime, duration, recordId))
+    cursor.execute("UPDATE moduleApTracker.ApRecord SET endTime = %s, duration = %s WHERE id = %s", (endTime, duration, recordId,))
     aDatabaseConnection.commit()
     cursor.close()
 
@@ -94,15 +94,17 @@ def stopTrackingApForNick(aDatabaseConnection, aMessageNick):
 def getApStatsForNick(aDatabaseConnection, aMessageNick):
   cursor = aDatabaseConnection.cursor()
 
+  print aMessageNick
+
   #Get the UserId for this nick
-  cursor.execute("SELECT userId FROM rafiBot.Nicks WHERE nick = %s", (aMessageNick))
+  cursor.execute("SELECT userId FROM rafiBot.Nicks WHERE nick = %s", (aMessageNick,))
   if cursor.rowcount == 0:
     return 'This nick is not linked to a registered user'
   userId = cursor.fetchall()[0][0]
 
   statMessage = ''
   #Get the total time of all complete APs and the count of how many have been drank
-  cursor.execute("SELECT COUNT(id), SUM(duration) FROM moduleApTracker.ApRecord ar WHERE ar.userId = %s and ar.endTime IS NOT NULL", (userId))
+  cursor.execute("SELECT COUNT(id), SUM(duration) FROM moduleApTracker.ApRecord ar WHERE ar.userId = %s and ar.endTime IS NOT NULL", (userId,))
   result = cursor.fetchall()
   totalAps = result[0][0]
   if totalAps != 0:
@@ -112,7 +114,7 @@ def getApStatsForNick(aDatabaseConnection, aMessageNick):
     statMessage = 'You have drank ' + str(totalAps) + ' AP(s) for a total time of ' + formatedDuration + '.  '
 
   #Check to see if there are any open APs and report stats on those
-  cursor.execute("SELECT unix_timestamp(startTime) FROM moduleApTracker.ApRecord ar WHERE ar.userId = %s and ar.endTime IS NULL", (userId))
+  cursor.execute("SELECT unix_timestamp(startTime) FROM moduleApTracker.ApRecord ar WHERE ar.userId = %s and ar.endTime IS NULL", (userId,))
   if cursor.rowcount != 0:
     result = cursor.fetchall()
     startTime = result[0][0]
