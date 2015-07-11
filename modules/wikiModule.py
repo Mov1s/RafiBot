@@ -27,13 +27,9 @@ def strip_tags(html):
     s.feed(str(html))
     return s.get_data()
 
-
-class WikiModule(IrcModule):
-	def defineResponses(self):
-		self.respondToRegex('(wiki)( me| ma)? (.*)', wikiParagraph)
-
+@respondtoregex('(wiki)( me| ma)? (.*)')
 def wikiParagraph(message, **extra_args):
-    article= extra_args['matchGroup'][2]
+    article= extra_args['match_group'][2]
     article = urllib.quote(article)
     articleUrl = "http://en.wikipedia.org/wiki/" + article
 
@@ -48,16 +44,16 @@ def wikiParagraph(message, **extra_args):
     responses = tokenizer.tokenize(response)
 
     messages = []
-    messages.append(IrcMessage.newRoomMessage(articleUrl))
+    messages.append(message.new_response_message(articleUrl))
     for sentence in responses:
-        messages.append(IrcMessage.newRoomMessage(sentence))
+        messages.append(message.new_response_message(sentence))
     try:
         imgs = soup.findAll("table", {"class":"infobox"})
         for img in imgs:
             imgUrl = 'http:' + img.findAll("tr")[1].find("img")['src']
-            messages.append(IrcMessage.newRoomMessage(imgUrl))
+            messages.append(message.new_response_message(imgUrl))
     except:
-        messages.append(IrcMessage.newRoomMessage('Unable to grab picture.'))
+        messages.append(message.new_response_message('Unable to grab picture.'))
 
 
     return messages
