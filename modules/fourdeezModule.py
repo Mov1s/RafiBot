@@ -17,32 +17,28 @@ fourdeez_images.append('https://www.dropbox.com/s/haq780vh93xv97i/Fourdeezz%20Hi
 fourdeez_images.append('http://i.imgur.com/CA8U1m1.gif')
 fourdeez_images.append('http://i.imgur.com/FQ3IR0m.gif')
 
-class FourdeezModule(IrcModule):
+@respondtoregex('.*(four|40).*')
+def fourdeez_response(aMessage, **extraArgs):
+  if today_is_thursday():
+    return aMessage.new_response_message("FOURDEEEEZZZZ!!")
 
-  def defineResponses(self):
-    self.respondToRegex('.*(four|40).*', self.fourdeez_response)
-    self.respondToIdleTime(600, self.fourdeez_images_response)
-    self.respondToRegex('.*(tonight).*', self.correct_tonight_response)
+@respondtoidletime(600)
+def fourdeez_images_response(**extraArgs):
+  previousMessage = self.ircBot.irc.messageLog[-1]
 
-  def fourdeez_response(self, aMessage, **extraArgs):
-    if today_is_thursday():
-      return aMessage.newResponseMessage("FOURDEEEEZZZZ!!")
+  if today_is_thursday() and previousMessage.sendingNick != self.ircBot.irc.nick:
+    image_index = randint(0, len(fourdeez_images) - 1)
+    return IrcMessage.new_room_message('FOURDEEZ!! ' + fourdeez_images[image_index])
 
-  def fourdeez_images_response(self, **extraArgs):
-    previousMessage = self.ircBot.irc.messageLog[-1]
+@respondtoregex('.*(tonight).*')
+def correct_tonight_response(aMessage, **extraArgs):
+  if today_is_thursday():
+    tt_expression = re.compile('.*(tonight)( *)(tonight).*', re.IGNORECASE)
+    tonight_tonight_match = tt_expression.match(aMessage.body)
 
-    if today_is_thursday() and previousMessage.sendingNick != self.ircBot.irc.nick:
-      image_index = randint(0, len(fourdeez_images) - 1)
-      return IrcMessage.newRoomMessage('FOURDEEZ!! ' + fourdeez_images[image_index])
-
-  def correct_tonight_response(self, aMessage, **extraArgs):
-    if today_is_thursday():
-      tt_expression = re.compile('.*(tonight)( *)(tonight).*', re.IGNORECASE)
-      tonight_tonight_match = tt_expression.match(aMessage.body)
-
-      #Return true if they say 'tonight' and not 'tonight tonight'
-      if not tonight_tonight_match:
-        return aMessage.newResponseMessage('tonight tonight*')
+    #Return true if they say 'tonight' and not 'tonight tonight'
+    if not tonight_tonight_match:
+      return aMessage.new_response_message('tonight tonight*')
 
 def today_is_thursday():
   weekday = date.today().weekday()

@@ -1,7 +1,6 @@
 from ircBase import *
 import urllib2
 import json
-import re
 from random import randint
 
 GOOGLE_API_URL = 'http://ajax.googleapis.com'

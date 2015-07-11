@@ -14,29 +14,25 @@ GITHUB_USER = config.get('Github', 'username')
 
 _last_reported_issue = {'title': '', 'issue': ''}
 
-class ErrorLoggingModule(IrcModule):
+@respondtoregex('(error|err) (me|ma)(.*)')
+def logging_response(message, **extra_args):
+  """Private message the details of the last error."""
+  last_log_error_title = get_last_log_error_title()
+  last_saved_error_title = _last_reported_issue['title']
 
-  def defineResponses(self):
-    self.respondToRegex('(error|err) (me|ma)(.*)', self.logging_response)
+  if (last_log_error_title != last_saved_error_title):
+    github_issue = find_github_issue(last_log_error_title)
 
-  def logging_response(self, message, **extra_args):
-    """Private message the details of the last error."""
-    last_log_error_title = get_last_log_error_title()
-    last_saved_error_title = _last_reported_issue['title']
+    if github_issue:
+      save_last_reported_issue(last_log_error_title, github_issue)
+    else:
+      new_issue = create_github_issue(last_log_error_title, get_last_log_error_body())
+      new_issue = new_issue if new_issue else "Go fuck yourself"
+      save_last_reported_issue(last_log_error_title, new_issue)
 
-    if (last_log_error_title != last_saved_error_title):
-      github_issue = find_github_issue(last_log_error_title)
-
-      if github_issue:
-        save_last_reported_issue(last_log_error_title, github_issue)
-      else:
-        new_issue = create_github_issue(last_log_error_title, get_last_log_error_body())
-        new_issue = new_issue if new_issue else "Go fuck yourself"
-        save_last_reported_issue(last_log_error_title, new_issue)
-
-    return_messages = [IrcMessage.newPrivateMessage(_last_reported_issue['title'], message.sendingNick)]
-    return_messages.append(IrcMessage.newPrivateMessage("For more information: " + _last_reported_issue['issue'], message.sendingNick))
-    return  return_messages
+  return_messages = [IrcMessage.new_private_message(_last_reported_issue['title'], message.sending_nick)]
+  return_messages.append(IrcMessage.new_private_message("For more information: " + _last_reported_issue['issue'], message.sending_nick))
+  return  return_messages
 
 def save_last_reported_issue(issue_title, issue):
   """Saves an issue into memory for use later."""
