@@ -9,30 +9,27 @@ config.read('configs/pivotalModule.conf')
 
 API_TOKEN = config.get('PivotalModule', 'api_key')
 
-class PivotalModule(IrcModule):
-  
-  def defineResponses(self):
-    self.time_of_last_check = int(time.time()) * 1000
-    self.respondToIdleTime(0, self.check_for_notifications)
+time_of_last_check = int(time.time()) * 1000
 
-  def check_for_notifications(self, **exta_args):
-    '''Check for recent notifications on a pivotal account'''
-    notifications = get_pivotal_notifications_since_time(API_TOKEN, self.time_of_last_check)
-    self.time_of_last_check = int(time.time()) * 1000
+@respondtoidletime(0)
+def check_for_notifications(**exta_args):
+  '''Check for recent notifications on a pivotal account'''
+  notifications = get_pivotal_notifications_since_time(API_TOKEN, time_of_last_check)
+  time_of_last_check = int(time.time()) * 1000
 
-    #Construct the room alerts
-    messages = []
-    for notification in notifications:
-      if notification['action'] == 'ownership':
-        story_name = notification["story"]["name"]
-        story_id = notification['story']['id']
-        story_link = get_pivotal_url_for_story(story_id)
+  #Construct the room alerts
+  messages = []
+  for notification in notifications:
+    if notification['action'] == 'ownership':
+      story_name = notification["story"]["name"]
+      story_id = notification['story']['id']
+      story_link = get_pivotal_url_for_story(story_id)
 
-        message_body = 'New! [{0}] {1}'.format(story_id, story_name)
-        messages.append(IrcMessage.newRoomMessage(message_body))
-        messages.append(IrcMessage.newRoomMessage(story_link))
+      message_body = 'New! [{0}] {1}'.format(story_id, story_name)
+      messages.append(IrcMessage.new_room_message(message_body))
+      messages.append(IrcMessage.new_room_message(story_link))
 
-    return messages
+  return messages
 
 def get_pivotal_notifications_since_time(api_key, time):
   '''Return an array of notifications for a pivotal account since a given epoch time'''

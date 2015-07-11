@@ -3,12 +3,12 @@ import urllib2
 import urllib
 from bs4 import BeautifulSoup
 
-def main(irc):
-	message = irc.lastMessage()
+@respondtoregex('.*')
+def twss_response(message, **extra_args):
 
 	#Don't check for messages that arent room messages or pms
 	#This also filters out things said by Rafi, so it only looks at other nicks messages'
-	if message.body != None and message.sendingNick != message.ircConnection.nick:
+	if message.is_private_message or (message.is_room_message and message.sending_nick != IrcBot.shared_instance().nick):
 		try:
 			#Request TWSS for a given message
 			twss = message.body.replace(' ', '+')
@@ -21,6 +21,6 @@ def main(irc):
 
 			#Check if that's what she said
 			if twssSpan.string == "That's what she said!":
-				irc.sendMessageToRoom("That's what she said!")
+				return message.new_response_message("That's what she said!")
 		except:
 			return
