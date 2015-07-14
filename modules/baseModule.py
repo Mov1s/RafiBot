@@ -90,7 +90,7 @@ def runtime_evaluation_response(message, **extra_args):
 def bewbs_response(**extra_args):
   """Respond with 'Bewbs'."""
   previousMessage = IrcBot.shared_instance().message_log[-1]
-  if previousMessage.sendingNick != IrcBot.shared_instance().nick:
+  if previousMessage.sending_nick != IrcBot.shared_instance().nick:
     return IrcMessage.new_room_message('Bewbs')
 
 @respondtoregex('.*(shiva).*')
