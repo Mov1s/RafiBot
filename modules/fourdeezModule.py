@@ -24,9 +24,9 @@ def fourdeez_response(aMessage, **extraArgs):
 
 @respondtoidletime(600)
 def fourdeez_images_response(**extraArgs):
-  previousMessage = self.ircBot.irc.messageLog[-1]
+  previous_message = IrcBot.shared_instance().message_log[-1]
 
-  if today_is_thursday() and previousMessage.sendingNick != self.ircBot.irc.nick:
+  if today_is_thursday() and previous_message.sending_nick != IrcBot.shared_instance().nick:
     image_index = randint(0, len(fourdeez_images) - 1)
     return IrcMessage.new_room_message('FOURDEEZ!! ' + fourdeez_images[image_index])
 
