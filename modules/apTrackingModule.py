@@ -3,27 +3,26 @@ import MySQLdb as mdb
 import time
 import datetime
 
-class ApTrackingModule(IrcModule):
+@respondtoregex('(track ap start)')
+def ap_start_response(message, **extra_args):
+  """Start tracking an AP and return a confirmation message."""
+  db_connection = IrcBot.shared_instance().database_connection()
+  return_message = startTrackingApForNick(db_connection, message.sending_nick)
+  return message.new_response_message(return_message)
 
-  def defineResponses(self):
-    self.respondToRegex('(track ap start)', self.ap_start_response)
-    self.respondToRegex('(track ap stop)', self.ap_stop_response)
-    self.respondToRegex('(track ap stats)', self.ap_stats_response)
+@respondtoregex('(track ap stop)')
+def ap_stop_response(message, **extra_args):
+  """Stop track the last started AP and return a confirmation message."""
+  db_connection = IrcBot.shared_instance().database_connection()
+  return_message = stopTrackingApForNick(db_connection, message.sending_nick)
+  return message.new_response_message(return_message)
 
-  def ap_start_response(self, message, **extra_args):
-    """Start tracking an AP and return a confirmation message."""
-    returnMessage = startTrackingApForNick(self.ircBot.databaseConnection(), message.sendingNick)
-    return message.newResponseMessage(returnMessage)
-
-  def ap_stop_response(self, message, **extra_args):
-    """Stop track the last started AP and return a confirmation message."""
-    returnMessage = stopTrackingApForNick(self.ircBot.databaseConnection(), message.sendingNick)
-    return message.newResponseMessage(returnMessage)
-
-  def ap_stats_response(self, message, **extra_args):
-    """Gather stats on the all APs and return them"""
-    returnMessage = getApStatsForNick(self.ircBot.databaseConnection(), message.sendingNick)
-    return message.newResponseMessage(returnMessage)
+@respondtoregex('(track ap stats)')
+def ap_stats_response(message, **extra_args):
+  """Gather stats on the all APs and return them"""
+  db_connection = IrcBot.shared_instance().database_connection()
+  return_message = getApStatsForNick(db_connection, message.sending_nick)
+  return message.new_response_message(return_message)
 
 
 #------------------------------------------------------------------

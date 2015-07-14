@@ -7,35 +7,39 @@ from email.MIMEText import MIMEText
 import imaplib
 import email
 
-
 CONST_CONTACT = 2
 CONST_MESSAGE = 3
 
+def getContactList():
+	configFile = open('configs/smsConfig.conf','r')
+	contactList = configFile.readlines()
+	contactList = [x.replace('\n', '') for x in contactList]
+	return contactList
 
-class SmsModule(IrcModule):
-	def defineResponses(self):
-		contactList = getContactList()
-		self.respondToRegex('(text)(' + getContacts(contactList)  + ') (.*)', sendText)
-		self.respondToRegex('(contact list)', printContactList)
-		self.respondToIdleTime(0, readEmail)
-
-
+def getContacts(contactList):
+	contacts = ''
+	for index, item in enumerate(contactList):
+		if index%2 == 0 and index>=2:
+			contacts += "| " + contactList[index]
+	return contacts[1:]
+	
+@respondtoregex('(text)(' + getContacts(getContactList())  + ') (.*)')
 def sendText(message, **extra_args):
 	contactList = getContactList()
-	contact = extra_args['matchGroup'][1]
+	contact = extra_args['match_group'][1]
 	contact = contact.strip()
-	text = extra_args['matchGroup'][2]
+	text = extra_args['match_group'][2]
 	try:
-		sendMail(contactList,contact,"<" + message.sendingNick + "> " + text)
-		return message.newResponseMessage("Text message sent to " + contact)
+		sendMail(contactList,contact,"<" + message.sending_nick + "> " + text)
+		return message.new_response_message("Text message sent to " + contact)
 	except:
 		return
 
-
+@respondtoregex('(contact list)')
 def printContactList(message, **extra_args):
-	return IrcMessage.newRoomMessage("Contacts in system:" + getContacts(getContactList()).replace("|",","))		
+	return message.new_response_message("Contacts in system:" + getContacts(getContactList()).replace("|",","))		
 
-
+@respondtoidletime(0)
 def readEmail (**extra_args):
 	try:
 		messages = []
@@ -58,7 +62,7 @@ def readEmail (**extra_args):
 							message = attachment.get_payload(decode=True)
 						contact = contactList[getContactIndex(contactList, fromAddr[:10]) -1].split("|")
 						if getContactIndex(contactList, fromAddr[:10]) <> -1:
-							messages.append(IrcMessage.newRoomMessage("<" + contact[0] + "> " + message))
+							messages.append(IrcMessage.new_room_message("<" + contact[0] + "> " + message))
 				typ, response = conn.store(num, '+FLAGS', r'(\Seen)')
 		finally:
 			try:
@@ -85,21 +89,6 @@ def sendMail(contactList, to, text):
 	mailServer.login(fromAddr,password)
 	mailServer.sendmail(fromAddr,toAddr,text)
 	mailServer.close()
-
-
-def getContactList():
-	configFile = open('configs/smsConfig','r')
-	contactList = configFile.readlines()
-	contactList = [x.replace('\n', '') for x in contactList]
-	return contactList
-
-
-def getContacts(contactList):
-	contacts = ''
-	for index, item in enumerate(contactList):
-		if index%2 == 0 and index>=2:
-			contacts += "| " + contactList[index]
-	return contacts[1:]
 
 
 def getContactIndex (contactList, contact):
